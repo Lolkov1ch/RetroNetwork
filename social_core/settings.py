@@ -111,7 +111,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-auth_USER_MODEL = 'social_network.User'
+AUTH_USER_MODEL = "social_network.User"
 
 
 # Static files (CSS, JavaScript, Images)
