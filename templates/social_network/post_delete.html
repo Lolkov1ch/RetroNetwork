@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Post Delete</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+<div class="delete-wrapper">
+  <div class="delete-card">
+    <div class="delete-header">
+      <h2>
+        <span></span>
+        Delete Task
+      </h2>
+    </div>
+    
+    <div class="delete-body">
+      <div class="warning-section">
+        <p>Are you sure you want to delete the post <strong>"{{ object.title }}"</strong>?</p>
+      </div>
+      
+      <form method="post">
+        {% csrf_token %}
+        <div class="button-group">
+          <button type="submit" class="btn-delete">
+            🗑️ Yes, Delete
+          </button>
+          <a href="{% url 'social_network:post_base' %}" class="btn-cancel">
+            ← Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

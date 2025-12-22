@@ -1,0 +1,11 @@
+{% extends 'social_network/post_base.html' %}
+{% load static %}
+{% block content %}
+    <h2>Add Comment to "{{ post.title }}"</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit Comment</button>
+        <a href="{% url 'social_network:post_detail' post.pk %}">Cancel</a>
+    </form>
+{% endblock %}

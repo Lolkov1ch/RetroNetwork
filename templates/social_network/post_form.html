@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Post {% if object %}Edit{% else %}Create{% endif %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+<div>
+  <div>
+    <div>
+      <h1>{% if object %}Edit{% else %}Create{% endif %}</h1>
+    </div>
+    <div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <div class="form-actions">
+          <button type="submit" class="btn-save">Save Post</button>
+          {% if object %}
+            <a href="{% url 'social_network:post_delete' object.id %}" class="btn-delete">Delete</a>
+          {% endif %}
+          <a href="{% url 'social_network:post_base' %}" class="btn-back">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>
