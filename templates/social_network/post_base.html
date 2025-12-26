@@ -23,6 +23,7 @@
                     {% csrf_token %}
                     <button type="submit">❤️</button>
                 </form>
+                <a href="{% url 'social_network:post_detail' post.pk %}">View details</a>
                 <div class="comments">
                     <h5>Comments:</h5>
                     {% for comment in post.comments.all %}
@@ -32,11 +33,26 @@
                                 <strong>{{ comment.author.username }}</strong>
                                 — {{ comment.created_at }}
                             </small>
+                            <div>
+                                <form method="post" action="{% url 'social_network:toggle_like' comment.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit">
+                                        ❤️ Like
+                                    </button>
+                                </form>
+                                <a href="{% url 'social_network:comment_edit' comment.pk %}">Edit comment</a>
+                                <a href="{% url 'social_network:comment_delete' comment.pk %}">Delete comment</a>
+                            </div>
                         </div>
                     {% empty %}
                         <p class="text-muted">No comments yet.</p>
                     {% endfor %}
-                    <a href="{% url 'social_network:post_add_comment' post.pk %}">Add Comment</a>
+                    <label for="comment">Add Comment</label>
+                    <form method="post" action="{% url 'social_network:post_add_comment' post.pk %}">
+                        {% csrf_token %}
+                        <textarea name="content" id="comment" required></textarea>
+                        <button type="submit">Submit</button>
+                    </form>
                 </div>
 
                 <div class="mt-2">
@@ -47,6 +63,7 @@
             </div>
             {% empty %}
             <p>No posts available.</p>
+            <a href="{% url 'social_network:post_create' %}">Create Post</a>
         {% endfor %}
     </div>
     {% endblock %}

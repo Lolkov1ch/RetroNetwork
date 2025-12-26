@@ -1,11 +1,28 @@
 {% extends 'social_network/post_base.html' %}
 {% load static %}
 {% block content %}
-    <h2>Add Comment to "{{ post.title }}"</h2>
+<section>
+    {% if comment.pk %}
+        <h2>Edit comment</h2>
+    {% else %}
+        <h2>Add comment to "{{ post.title }}"</h2>
+    {% endif %}
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Submit Comment</button>
-        <a href="{% url 'social_network:post_detail' post.pk %}">Cancel</a>
+        {{ form.non_field_errors }}
+        <div class="field">
+            {{ form.content.label_tag }}
+            {{ form.content }}
+            {{ form.content.errors }}
+        </div>
+        <div class="actions">
+            <button type="submit">
+                {% if comment.pk %}Save{% else %}Submit{% endif %}
+            </button>
+            <a href="{% url 'social_network:post_detail' post.pk %}">
+                Cancel
+            </a>
+        </div>
     </form>
+</section>
 {% endblock %}

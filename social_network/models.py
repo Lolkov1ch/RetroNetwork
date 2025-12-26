@@ -54,4 +54,4 @@ class Like(models.Model):
         return f"{self.user} likes Post #{self.post.id}"
 
     class Meta:
-        unique_together = ("post", "user")
+        unique_together = ("post", "user", "comment")
