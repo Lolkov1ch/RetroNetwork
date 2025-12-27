@@ -20,9 +20,9 @@
         <div class="form-actions">
           <button type="submit" class="btn-save">Save Post</button>
           {% if object %}
-            <a href="{% url 'social_network:post_delete' object.id %}" class="btn-delete">Delete</a>
+            <a href="{% url 'posts:post_delete' object.pk %}" class="btn-delete">Delete</a>
           {% endif %}
-          <a href="{% url 'social_network:post_base' %}" class="btn-back">Cancel</a>
+          <a href="{% url 'posts:post_base' %}" class="btn-back">Cancel</a>
         </div>
       </form>
     </div>

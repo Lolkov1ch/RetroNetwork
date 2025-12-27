@@ -38,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'social_network',
+    'users',             
+    'posts',
+    'comments',
+    'reactions',
 ]
 
 MIDDLEWARE = [
@@ -111,10 +115,18 @@ USE_I18N = True
 
 USE_TZ = True
 
-AUTH_USER_MODEL = "social_network.User"
+AUTH_USER_MODEL = "users.User"
+
+LOGIN_REDIRECT_URL = 'posts:post_base'
+
+LOGOUT_REDIRECT_URL = 'posts:post_base'
+
+LOGIN_URL = '/accounts/login/'  
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [BASE_DIR / "static"]

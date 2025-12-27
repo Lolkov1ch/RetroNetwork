@@ -10,15 +10,12 @@
 <div class="delete-wrapper">
   <div class="delete-card">
     <div class="delete-header">
-      <h2>
-        <span></span>
-        Delete Task
-      </h2>
+      <h2>Delete Post</h2>
     </div>
     
     <div class="delete-body">
       <div class="warning-section">
-        <p>Are you sure you want to delete the post <strong>"{{ object.title }}"</strong>?</p>
+        <p>Are you sure you want to delete the post <strong>"{{ object.content|truncatewords:5 }}"</strong>?</p>
       </div>
       
       <form method="post">
@@ -27,7 +24,7 @@
           <button type="submit" class="btn-delete">
             🗑️ Yes, Delete
           </button>
-          <a href="{% url 'social_network:post_base' %}" class="btn-cancel">
+          <a href="{% url 'posts:post_base' %}" class="btn-cancel">
             ← Cancel
           </a>
         </div>
@@ -35,3 +32,5 @@
     </div>
   </div>
 </div>
+</body>
+</html>

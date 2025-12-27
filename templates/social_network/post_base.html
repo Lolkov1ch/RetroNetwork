@@ -5,67 +5,66 @@
     <meta charset="UTF-8">
     <title>Post List</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    {% block content %}
-    <h1>Post List</h1>
-    <div class="post-list">
-        {% for post in posts %}
-            <div class="post">
-                <h2>{{ post.title }}</h2>
-                <p>{{ post.content }}</p>
-                <p><strong>Author:</strong> {{ post.author.username }}</p>
-                <p><strong>Created at:</strong> {{ post.created_at|date:"d.m.Y H:i" }}</p>
-                <p><strong>Likes:</strong> {{ post.likes.count }}</p> 
-                <form method="post" action="{% url 'social_network:post_like' post.pk %}">
-                    {% csrf_token %}
-                    <button type="submit">❤️</button>
-                </form>
-                <a href="{% url 'social_network:post_detail' post.pk %}">View details</a>
-                <div class="comments">
-                    <h5>Comments:</h5>
-                    {% for comment in post.comments.all %}
-                        <div>
-                            <p>{{ comment.content }}</p>
-                            <small>
-                                <strong>{{ comment.author.username }}</strong>
-                                — {{ comment.created_at }}
-                            </small>
-                            <div>
-                                <form method="post" action="{% url 'social_network:toggle_like' comment.pk %}">
-                                    {% csrf_token %}
-                                    <button type="submit">
-                                        ❤️ Like
-                                    </button>
-                                </form>
-                                <a href="{% url 'social_network:comment_edit' comment.pk %}">Edit comment</a>
-                                <a href="{% url 'social_network:comment_delete' comment.pk %}">Delete comment</a>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <p class="text-muted">No comments yet.</p>
-                    {% endfor %}
-                    <label for="comment">Add Comment</label>
-                    <form method="post" action="{% url 'social_network:post_add_comment' post.pk %}">
-                        {% csrf_token %}
-                        <textarea name="content" id="comment" required></textarea>
-                        <button type="submit">Submit</button>
-                    </form>
-                </div>
+{% block content %}
+<h1>Post List</h1>
+<div class="post-list">
+    {% for post in posts %}
+        <div class="post">
+            <h2>{{ post.content|truncatewords:5 }}</h2>
+            <p>{{ post.content }}</p>
+            <p><strong>Author:</strong> {{ post.author.username }}</p>
+            <p><strong>Created at:</strong> {{ post.created_at|date:"d.m.Y H:i" }}</p>
+            <p><strong>Likes:</strong> {{ post.likes.count }}</p> 
+            <form method="post" action="{% url 'posts:post_like' post.pk %}">
+                {% csrf_token %}
+                <button type="submit">❤️</button>
+            </form>
+            <a href="{% url 'posts:post_detail' post.pk %}">View details</a>
 
-                <div class="mt-2">
-                    <a href="{% url 'social_network:post_update' post.pk %}">Edit</a>
-                    <a href="{% url 'social_network:post_delete' post.pk %}">Delete</a>
-                    <a href="{% url 'social_network:post_create' %}">Create Post</a>
-                </div>
+            <div class="comments">
+                <h5>Comments:</h5>
+                {% for comment in post.comments.all %}
+                    <div>
+                        <p>{{ comment.content }}</p>
+                        <small>
+                            <strong>{{ comment.author.username }}</strong> — {{ comment.created_at|date:"d.m.Y H:i" }}
+                        </small>
+                        <div>
+                            <form method="post" action="{% url 'reactions:toggle_like' comment.pk %}">
+                                {% csrf_token %}
+                                <button type="submit">Like</button>
+                            </form>
+                            <a href="{% url 'comments:comment_edit' comment.pk %}">Edit comment</a>
+                            <a href="{% url 'comments:comment_delete' comment.pk %}">Delete comment</a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No comments yet.</p>
+                {% endfor %}
+
+                <label for="comment-{{ post.pk }}">Add Comment</label>
+                <form method="post" action="{% url 'comments:post_add_comment' post.pk %}">
+                    {% csrf_token %}
+                    <textarea name="content" id="comment-{{ post.pk }}" required></textarea>
+                    <button type="submit">Submit</button>
+                </form>
             </div>
-            {% empty %}
-            <p>No posts available.</p>
-            <a href="{% url 'social_network:post_create' %}">Create Post</a>
-        {% endfor %}
-    </div>
-    {% endblock %}
+
+            <div class="mt-2">
+                <a href="{% url 'posts:post_update' post.pk %}">Edit</a>
+                <a href="{% url 'posts:post_delete' post.pk %}">Delete</a>
+                <a href="{% url 'posts:post_create' %}">Create Post</a>
+            </div>
+        </div>
+    {% empty %}
+        <p>No posts available.</p>
+        <a href="{% url 'posts:post_create' %}">Create Post</a>
+    {% endfor %}
+</div>
+{% endblock %}
 </body>
 </html>
