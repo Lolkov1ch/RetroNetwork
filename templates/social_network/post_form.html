@@ -1,32 +1,31 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
 {% load static %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Post {% if object %}Edit{% else %}Create{% endif %}</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-</head>
-<body>
+{% block title %}
+Post {% if object %}Edit{% else %}Create{% endif %}
+{% endblock %}
+{% block content %}
 <div>
   <div>
     <div>
-      <h1>{% if object %}Edit{% else %}Create{% endif %}</h1>
-    </div>
-    <div>
+      <h1>
+        {% if object %}Edit{% else %}Create{% endif %} Post
+      </h1>
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-
-        <div class="form-actions">
-          <button type="submit" class="btn-save">Save Post</button>
+        <div>
+          <button type="submit">Save</button>
           {% if object %}
-            <a href="{% url 'posts:post_delete' object.pk %}" class="btn-delete">Delete</a>
+            <a href="{% url 'posts:post_delete' object.pk %}">
+              Delete
+            </a>
           {% endif %}
-          <a href="{% url 'posts:post_base' %}" class="btn-back">Cancel</a>
+          <a href="{% url 'posts:post_list' %}">
+            Cancel
+          </a>
         </div>
       </form>
     </div>
   </div>
 </div>
-</body>
-</html>
+{% endblock %}

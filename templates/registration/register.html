@@ -1,0 +1,22 @@
+<h1>Register</h1>
+
+<form method="post">
+  {% csrf_token %}
+
+  {{ form.non_field_errors }}
+
+  {% for field in form %}
+    <div>
+      {{ field.label_tag }}
+      {{ field }}
+      {{ field.errors }}
+    </div>
+  {% endfor %}
+
+  <button type="submit">Create account</button>
+</form>
+
+<p>
+  Already have an account?
+  <a href="{% url 'users:login' %}">Sign in</a>
+</p>

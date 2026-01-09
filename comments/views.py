@@ -2,8 +2,10 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy, reverse
 from django.core.exceptions import PermissionDenied
+from django.views import View
+from django.urls import reverse
+from reactions.models import Like
 
 from posts.models import Post
 from .models import Comment
@@ -29,24 +31,14 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def get_success_url(self):
-        post_pk = self.kwargs.get("pk")
-        return reverse("social_network:post_detail", kwargs={"pk": post_pk})
+        messages.success(self.request, "Comment added!")
+        return self.request.META.get("HTTP_REFERER", "/")
 
 
 class CommentEditView(LoginRequiredMixin, UpdateView):
     model = Comment
     template_name = "social_network/comment_form.html"
-    context_object_name = "comment"
     fields = ["content"]
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["post"] = self.object.post
-        return context
-
-    def get_success_url(self):
-        messages.success(self.request, "Comment updated!")
-        return reverse("social_network:post_detail", kwargs={"pk": self.object.post.pk})
 
     def dispatch(self, request, *args, **kwargs):
         if self.get_object().author != request.user:
@@ -54,23 +46,23 @@ class CommentEditView(LoginRequiredMixin, UpdateView):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
 
-
-class CommentDeleteView(LoginRequiredMixin, DeleteView):
-    model = Comment
-    template_name = "social_network/comment_delete.html"
-    context_object_name = "comment"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["post"] = self.object.post
-        return context
+    def form_valid(self, form):
+        messages.success(self.request, "Comment updated!")
+        return super().form_valid(form)
 
     def get_success_url(self):
-        messages.success(self.request, "Comment deleted!")
-        return reverse("social_network:post_detail", kwargs={"pk": self.object.post.pk})
+        return reverse("posts:post_list")
 
-    def dispatch(self, request, *args, **kwargs):
-        if self.get_object().author != request.user:
+
+class CommentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        comment = get_object_or_404(Comment, pk=pk)
+
+        if comment.author != request.user:
             messages.error(request, "You can't delete someone else's comment.")
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        comment.delete()
+        messages.success(request, "Comment deleted!")
+
+        return redirect(request.META.get('HTTP_REFERER', '/'))

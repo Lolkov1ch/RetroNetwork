@@ -18,7 +18,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     template_name = "social_network/post_form.html"
     context_object_name = "post"
     fields = ["content"]
-    success_url = reverse_lazy("social_network:post_base")
+    success_url = reverse_lazy("posts:post_list") 
     
     def form_valid(self, form):
         form.instance.author = self.request.user
@@ -27,7 +27,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
 class PostListView(ListView):
     model = Post
-    template_name = "social_network/post_base.html"
+    template_name = "social_network/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
     
@@ -48,29 +48,12 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse("social_network:post_detail", kwargs={"pk": self.object.pk})
+        return reverse("posts:post_detail", kwargs={"pk": self.object.pk})  
     
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     template_name = "social_network/post_delete.html"
     context_object_name = "post"
-    success_url = reverse_lazy("social_network:post_base")
+    success_url = reverse_lazy("posts:post_list") 
     
-
-class PostLikeView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        post = get_object_or_404(Post, pk=pk)
-
-        like, created = Like.objects.get_or_create(
-            post=post,
-            user=request.user
-        )
-
-        if not created:
-            like.delete()
-            messages.info(request, "Like removed.")
-        else:
-            messages.success(request, "Post liked!")
-
-        return redirect("social_network:post_detail", pk=post.pk)

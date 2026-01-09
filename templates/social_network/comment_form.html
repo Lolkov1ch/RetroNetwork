@@ -1,29 +1,37 @@
-{% extends 'posts/post_base.html' %}
+{% extends 'base.html' %}
 {% load static %}
-
+{% block title %}
+{% if comment.pk %}Edit Comment{% else %}Add Comment{% endif %}
+{% endblock %}
 {% block content %}
-<section>
-    {% if comment.pk %}
-        <h2>Edit comment</h2>
-    {% else %}
-        <h2>Add comment to "{{ comment.post.content }}"</h2>
-    {% endif %}
-    <form method="post">
+<div>
+  <div>
+    <div>
+      <h2>
+        {% if comment.pk %}
+          Edit Comment
+        {% else %}
+          Add Comment to "{{ comment.post.content|truncatewords:5 }}"
+        {% endif %}
+      </h2>
+      <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
-        <div class="field">
-            {{ form.content.label_tag }}
-            {{ form.content }}
-            {{ form.content.errors }}
+        <div>
+          {{ form.content.label_tag }}
+          {{ form.content }}
+          {{ form.content.errors }}
         </div>
-        <div class="actions">
-            <button type="submit">
-                {% if comment.pk %}Save{% else %}Submit{% endif %}
-            </button>
-            <a href="{% url 'posts:post_detail' comment.post.pk %}">
-                Cancel
-            </a>
+        <div>
+          <button type="submit">
+            {% if comment.pk %}Save{% else %}Submit{% endif %}
+          </button>
+          <a href="{% url 'posts:post_list' %}">Cancel</a>
+            Cancel
+          </a>
         </div>
-    </form>
-</section>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

@@ -1,4 +1,4 @@
-{% extends 'posts/post_base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 <html lang="en">    
 {% block content %}
@@ -18,7 +18,7 @@
                 on {{ comment.created_at|date:"d.m.Y H:i" }}
             </p>
             <div>
-                <form method="post" action="{% url 'reactions:toggle_like' comment.pk %}">
+                <form method="post" action="{% url 'reactions:toggle_like' 'comment' comment.pk %}">
                     {% csrf_token %}
                     <button type="submit">Like</button>
                 </form>
