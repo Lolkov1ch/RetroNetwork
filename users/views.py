@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import RegisterForm
 
 class LoginView(DjangoLoginView):
-    template_name = "login.html"
+    template_name = "registration/login.html"
 
 
 class RegisterView(View):
@@ -29,7 +29,7 @@ class RegisterView(View):
 class LogoutView(View):
     def post(self, request):
         logout(request)
-        return redirect("users:login")  
+        return render(request, "registration/logged_out.html")
 
 
 class ProfileView(LoginRequiredMixin, View):

@@ -28,7 +28,7 @@ class ToggleLikeView(LoginRequiredMixin, View):
         return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
-class CommentLikeView(View):
+class CommentLikeView(LoginRequiredMixin, View):
     def post(self, request, pk):
         comment = get_object_or_404(Comment, pk=pk)
         like, created = Like.objects.get_or_create(user=request.user, comment=comment, post=None)
@@ -40,7 +40,7 @@ class CommentLikeView(View):
         return redirect("posts:post_detail", pk=comment.post.pk)
     
     
-class PostLikeView(View):
+class PostLikeView(LoginRequiredMixin, View):
     def post(self, request, pk):
         post = get_object_or_404(Post, pk=pk)
         like, created = Like.objects.get_or_create(user=request.user, post=post, comment=None)

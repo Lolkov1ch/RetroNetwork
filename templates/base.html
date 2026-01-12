@@ -21,6 +21,11 @@
     <a href="{% url 'users:login' %}">Sign in</a>
     <a href="{% url 'users:register' %}">Register</a>
   {% endif %}
+  <form method="get" action="">
+    <input type="search" name="q" placeholder="Search" value="{{ request.GET.q }}" autocomplete="off">
+    <button type="submit">Search</button>
+</form>
+<a href="{% url 'posts:post_list' %}">Main Page</a>
 </nav>
 <div class="container">
   {% block content %}{% endblock %}

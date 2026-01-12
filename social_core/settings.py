@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'posts',
     'comments',
     'reactions',
+    'attachments',
 ]
 
 MIDDLEWARE = [
@@ -118,11 +119,15 @@ USE_TZ = True
 
 AUTH_USER_MODEL = "users.User"
 
-LOGIN_URL = "login"
+LOGIN_URL = "users:login"
 
-LOGIN_REDIRECT_URL = reverse_lazy('posts:post_list')
+LOGIN_REDIRECT_URL = "posts:post_list"
 
-LOGOUT_REDIRECT_URL = reverse_lazy('users:logout')
+LOGOUT_REDIRECT_URL = "users:logout"
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/

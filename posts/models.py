@@ -11,7 +11,8 @@ class Post(models.Model):
         on_delete=models.CASCADE,
         related_name="posts"
     )
-    content = models.TextField()
+    title = models.CharField(max_length=256, default='')
+    description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,7 +1,5 @@
 from django.urls import path
-from comments.views import CommentLikeView
-from posts.views import PostLikeView
-from .views import ToggleLikeView
+from .views import ToggleLikeView, PostLikeView, CommentLikeView
 
 app_name = "reactions"
 
