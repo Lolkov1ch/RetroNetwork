@@ -14,40 +14,9 @@ from .models import Post
 from .forms import PostMediaForm
 from posts.mixins import UserIsOwnerMixin
 from attachments.models import Media
+from posts.utils import is_image, is_video, get_post_media, handle_media_upload
 
 User = get_user_model()
-
-# custom functions
-
-def handle_media_upload(request, post):
-    files = request.FILES.getlist("images")
-    
-    if len(files) > settings.MAX_FILES_PER_UPLOAD:
-        messages.error(request, f"Maximum {settings.MAX_FILES_PER_UPLOAD} files allowed.")
-        return False
-    
-    for f in files:
-        if f.size > settings.MAX_UPLOAD_SIZE:  
-            messages.error(request, f"{f.name} exceeds maximum file size.")
-            continue
-
-        media_form = PostMediaForm(files={'file': f})
-        if not media_form.is_valid():
-            for error in media_form.errors.get('file', []):
-                messages.error(request, error)
-            continue
-        try:
-            Media.objects.create(
-                user=request.user,
-                file=f,
-                content_object=post
-            )
-        except ValidationError as e:
-            messages.error(request, str(e))
-    
-    return True
-
-# classes
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -55,12 +24,11 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     template_name = "social_network/post_create.html"
     context_object_name = "post"
     fields = ["title", "description"]
-    success_url = reverse_lazy("posts:post_list") 
+    success_url = reverse_lazy("posts:post_list")
     
     def form_valid(self, form):
         form.instance.author = self.request.user
         response = super().form_valid(form)
-
         handle_media_upload(self.request, self.object)
         return response
 
@@ -77,16 +45,16 @@ class PostListView(ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(title__icontains=query) |
-                Q(description__icontains=query)
+                Q(title__icontains=query) | Q(description__icontains=query)
             )
 
         posts = queryset.order_by('-id')
+        
         for post in posts:
-            post.images = Media.objects.filter(
-                content_type=ContentType.objects.get_for_model(Post),
-                object_id=post.id
-            )
+            all_media = get_post_media(post.id)
+            post.images = [m for m in all_media if is_image(m)]
+            post.videos = [m for m in all_media if is_video(m)]
+            
         return posts
 
 
@@ -96,13 +64,19 @@ class PostUpdateView(UserIsOwnerMixin, LoginRequiredMixin, UpdateView):
     context_object_name = "object"
     fields = ["title", "description"]
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['media_files'] = get_post_media(self.object.id)
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
 
         Media.objects.filter(
             id__in=self.request.POST.getlist("delete_images"),
             user=self.request.user,
-            content_object=self.object
+            content_type=ContentType.objects.get_for_model(Post),
+            object_id=self.object.id
         ).delete()
 
         handle_media_upload(self.request, self.object)
@@ -116,7 +90,7 @@ class PostDeleteView(UserIsOwnerMixin, LoginRequiredMixin, DeleteView):
     model = Post
     template_name = "social_network/post_delete.html"
     context_object_name = "post"
-    success_url = reverse_lazy("posts:post_list") 
+    success_url = reverse_lazy("posts:post_list")
 
 
 class PostImageView(LoginRequiredMixin, View):
@@ -134,4 +108,3 @@ class PostImageView(LoginRequiredMixin, View):
         handle_media_upload(request, post)
         messages.success(request, "Files uploaded successfully.")
         return redirect("posts:post_list")
-

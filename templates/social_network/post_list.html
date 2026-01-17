@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-
-{% block title %}Post List{% endblock %}
-
+{% block title %}RetroNetwork | Post List{% endblock %}
 {% block content %}
 <h1>Post List</h1>
-
 <div class="post-list">
     {% for post in posts %}
         <div class="post">
@@ -12,12 +9,10 @@
             <p>{{ post.description }}</p>
             <p><strong>Author:</strong> {{ post.author.username }}</p>
             <p><strong>Created at:</strong> {{ post.created_at|date:"d.m.Y H:i" }}</p>
-
             <form method="post" action="{% url 'reactions:post_like' post.pk %}">
                 {% csrf_token %}
                 <button type="submit">❤️ {{ post.likes.count }}</button>
             </form>
-
             {% if post.images %}
                 <div class="post-images">
                     {% for image in post.images %}
@@ -25,7 +20,18 @@
                     {% endfor %}
                 </div>
             {% endif %}
-
+            {% if post.videos %}
+                <div class="post-videos">
+                    {% for video in post.videos %}
+                        <video controls>
+                            <source src="{{ video.file.url }}" type="video/mp4">
+                            <source src="{{ video.file.url }}" type="video/webm">
+                            <source src="{{ video.file.url }}" type="video/ogg">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endfor %}
+                </div>
+            {% endif %}
             <div class="comments">
                 <h5>Comments:</h5>
                 {% for comment in post.comments.all %}
@@ -34,15 +40,12 @@
                         <small>
                             <strong>{{ comment.author.username }}</strong> — {{ comment.created_at|date:"d.m.Y H:i" }}
                         </small>
-
                         <div class="comment-actions">
                             <form method="post" action="{% url 'reactions:comment_like' comment.pk %}">
                                 {% csrf_token %}
                                 <button type="submit">❤️ {{ comment.likes.count }}</button>
                             </form>
-
                             <a href="{% url 'comments:comment_edit' comment.pk %}">Edit</a>
-
                             <form method="post" action="{% url 'comments:comment_delete' comment.pk %}">
                                 {% csrf_token %}
                                 <button type="submit" onclick="return confirm('Are you sure?');">
@@ -54,18 +57,15 @@
                 {% empty %}
                     <p class="text-muted">No comments yet.</p>
                 {% endfor %}
-
                 <form method="post" action="{% url 'comments:post_add_comment' post.pk %}">
                     {% csrf_token %}
                     <textarea name="content" required placeholder="Write a comment..."></textarea>
                     <button type="submit">Submit</button>
                 </form>
             </div>
-
             <div class="post-actions">
                 <a href="{% url 'posts:post_update' post.pk %}">Edit Post</a>
                 <a href="{% url 'posts:post_delete' post.pk %}">Delete Post</a>
-                <a href="{% url 'posts:post_create' %}">Create Post</a>
             </div>
         </div>
         <hr>
