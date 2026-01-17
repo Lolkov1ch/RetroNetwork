@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
 
 User = get_user_model()
 
@@ -12,7 +13,7 @@ class Post(models.Model):
         related_name="posts"
     )
     title = models.CharField(max_length=256, default='')
-    description = models.TextField()
+    description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

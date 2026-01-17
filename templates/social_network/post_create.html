@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Post{% endblock %}
+
+{% block content %}
+<h2>Create Post</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {{ form.title.label_tag }}<br>
+    {{ form.title }}<br>
+    {% for error in form.title.errors %}
+        <p class="error">{{ error }}</p>
+    {% endfor %}
+    <br>
+
+    {{ form.description.label_tag }}<br>
+    {{ form.description }}<br>
+    {% for error in form.description.errors %}
+        <p class="error">{{ error }}</p>
+    {% endfor %}
+    <br>
+
+    <label>Attach images:</label><br>
+    <input type="file" name="images" multiple><br><br>
+
+    <button type="submit">Create Post</button>
+    <a href="{% url 'posts:post_list' %}">Cancel</a>
+</form>
+{% endblock %}

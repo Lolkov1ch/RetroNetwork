@@ -1,27 +1,58 @@
-from urllib import request
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.files.images import get_image_dimensions
 from django.contrib.auth import get_user_model
 from django.views import View
 from django.db.models import Q
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
+from django.conf import settings
 
 from .models import Post
+from .forms import PostMediaForm
 from posts.mixins import UserIsOwnerMixin
-from attachments.models import Image
-from comments.models import Comment
-from reactions.models import Like
+from attachments.models import Media
 
 User = get_user_model()
+
+# custom functions
+
+def handle_media_upload(request, post):
+    files = request.FILES.getlist("images")
+    
+    if len(files) > settings.MAX_FILES_PER_UPLOAD:
+        messages.error(request, f"Maximum {settings.MAX_FILES_PER_UPLOAD} files allowed.")
+        return False
+    
+    for f in files:
+        if f.size > settings.MAX_UPLOAD_SIZE:  
+            messages.error(request, f"{f.name} exceeds maximum file size.")
+            continue
+
+        media_form = PostMediaForm(files={'file': f})
+        if not media_form.is_valid():
+            for error in media_form.errors.get('file', []):
+                messages.error(request, error)
+            continue
+        try:
+            Media.objects.create(
+                user=request.user,
+                file=f,
+                content_object=post
+            )
+        except ValidationError as e:
+            messages.error(request, str(e))
+    
+    return True
+
+# classes
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
-    template_name = "social_network/post_form.html"
+    template_name = "social_network/post_create.html"
     context_object_name = "post"
     fields = ["title", "description"]
     success_url = reverse_lazy("posts:post_list") 
@@ -30,14 +61,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         form.instance.author = self.request.user
         response = super().form_valid(form)
 
-        images = self.request.FILES.getlist("images")  
-        for f in images:
-            Image.objects.create(
-                user=self.request.user,
-                file=f,
-                content_object=self.object  
-            )
-
+        handle_media_upload(self.request, self.object)
         return response
 
 
@@ -59,7 +83,7 @@ class PostListView(ListView):
 
         posts = queryset.order_by('-id')
         for post in posts:
-            post.images = Image.objects.filter(
+            post.images = Media.objects.filter(
                 content_type=ContentType.objects.get_for_model(Post),
                 object_id=post.id
             )
@@ -68,26 +92,24 @@ class PostListView(ListView):
 
 class PostUpdateView(UserIsOwnerMixin, LoginRequiredMixin, UpdateView):
     model = Post
-    template_name = "social_network/post_form.html"
-    context_object_name = "post"
+    template_name = "social_network/post_edit.html"
+    context_object_name = "object"
     fields = ["title", "description"]
 
     def form_valid(self, form):
-        form.instance.author = self.request.user
         response = super().form_valid(form)
 
-        images = self.request.FILES.getlist("images")
-        for f in images:
-            Image.objects.create(
-                user=self.request.user,
-                file=f,
-                content_object=self.object
-            )
+        Media.objects.filter(
+            id__in=self.request.POST.getlist("delete_images"),
+            user=self.request.user,
+            content_object=self.object
+        ).delete()
 
-        return response 
+        handle_media_upload(self.request, self.object)
+        return response
 
     def get_success_url(self):
-        return reverse("posts:post_list")  
+        return reverse("posts:post_list")
 
 
 class PostDeleteView(UserIsOwnerMixin, LoginRequiredMixin, DeleteView):
@@ -99,24 +121,17 @@ class PostDeleteView(UserIsOwnerMixin, LoginRequiredMixin, DeleteView):
 
 class PostImageView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        post = get_object_or_404(Post, pk=kwargs.get("pk"))
+        post = get_object_or_404(Post, pk=kwargs["pk"])
 
-        files = request.FILES.getlist("images")
-        if not files:
-            messages.error(request, "No image files provided.")
-            return redirect("posts:post_list")
-
-        for f in files:
-            Image.objects.create(
-                user=request.user, 
-                file=f,
-                content_object=post
-            )
-
-        post = get_object_or_404(Post, pk=kwargs.get("pk"))
         if post.author != request.user:
-            messages.error(request, "You don't have permission to add images to this post.")
+            messages.error(request, "You don't have permission.")
             return redirect("posts:post_list")
 
-        messages.success(request, "Images uploaded successfully.")
+        if not request.FILES.getlist("images"):
+            messages.error(request, "No files provided.")
+            return redirect("posts:post_list")
+
+        handle_media_upload(request, post)
+        messages.success(request, "Files uploaded successfully.")
         return redirect("posts:post_list")
+

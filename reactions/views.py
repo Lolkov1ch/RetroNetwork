@@ -37,7 +37,7 @@ class CommentLikeView(LoginRequiredMixin, View):
             messages.info(request, "Like removed from comment.")
         else:
             messages.success(request, "Comment liked!")
-        return redirect("posts:post_detail", pk=comment.post.pk)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
     
     
 class PostLikeView(LoginRequiredMixin, View):
@@ -49,4 +49,4 @@ class PostLikeView(LoginRequiredMixin, View):
             messages.info(request, "Like removed from post.")
         else:
             messages.success(request, "Post liked!")
-        return redirect("posts:post_detail", pk=pk)
+        return redirect(request.META.get('HTTP_REFERER', '/'))

@@ -129,6 +129,10 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024
+
+MAX_FILES_PER_UPLOAD = 10 
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 

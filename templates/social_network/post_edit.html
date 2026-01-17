@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Post{% endblock %}
+
+{% block content %}
+<h2>Edit Post</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {{ form.title.label_tag }}<br>
+    {{ form.title }}<br><br>
+
+    {{ form.description.label_tag }}<br>
+    {{ form.description }}<br><br>
+
+    {% if object.media_set.exists %}
+        <h3>Current Images</h3>
+        <div class="task-images">
+            {% for m in object.media_set.all %}
+                {% if m.file.url|lower|slice:"-4:" == ".mp4" %}
+                    <video src="{{ m.file.url }}" controls style="max-width:150px;"></video>
+                {% else %}
+                    <img src="{{ m.file.url }}" style="max-width:150px;">
+                {% endif %}
+            {% endfor %}
+        </div>
+        <br>
+    {% endif %}
+
+    <label>Add new images:</label><br>
+    <input type="file" name="images" multiple><br><br>
+
+    <button type="submit">Save</button>
+    <a href="{% url 'posts:post_delete' object.pk %}">Delete</a>
+    <a href="{% url 'posts:post_list' %}">Cancel</a>
+</form>
+{% endblock %}
