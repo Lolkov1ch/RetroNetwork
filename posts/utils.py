@@ -6,8 +6,8 @@ from .forms import PostMediaForm
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 
-IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg')
-VIDEO_EXTENSIONS = ('.mp4', '.webm', '.ogg', '.avi', '.mov', '.wmv', '.flv', '.mkv')
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif')
+VIDEO_EXTENSIONS = ('.mp4', '.webm', '.avi', '.mov','.mkv')
 
 def is_image(media):
     return media.file.name.lower().endswith(IMAGE_EXTENSIONS)
