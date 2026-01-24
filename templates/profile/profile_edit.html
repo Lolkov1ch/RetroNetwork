@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Edit profile</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+</form>
+
+<a href="{% url 'users:change_password' %}">Edit password</a> |
+<a href="{% url 'users:notification_settings' %}">Notifications</a> |
+<a href="{% url 'users:privacy_settings' %}">Privacy</a>
+{% endblock %}
