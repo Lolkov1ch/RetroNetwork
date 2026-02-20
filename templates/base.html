@@ -5,28 +5,40 @@
   <meta charset="UTF-8">
   <title>{% block title %}RetroNetwork{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-</head>
 <body>
 <nav>
-  {% if user.is_authenticated %}
-    Hello, {{ user.username }} |
-    <a href="{% url 'users:profile' %}">Profile</a>
-    <form method="post" action="{% url 'users:logout' %}">
-      {% csrf_token %}
-      <button>Log out</button>
-    </form>
-  {% else %}
-    <a href="{% url 'users:login' %}">Sign in</a>
-    <a href="{% url 'users:register' %}">Register</a>
-  {% endif %}
-  <form method="get" action="">
-    <input type="search" name="q" placeholder="Search" value="{{ request.GET.q }}" autocomplete="off">
-    <button type="submit">Search</button>
-</form>
-<a href="{% url 'posts:post_list' %}">Main Page</a>
-<a href="{% url 'posts:post_create' %}">Create Post</a>
+  <div class="nav-auth">
+    {% if user.is_authenticated %}
+      <span>Hello, @{{ user.handle }}</span>
+      <a href="{% url 'users:profile' %}">Profile</a>
+      <form method="post" action="{% url 'users:logout' %}">
+        {% csrf_token %}
+        <button type="submit"Log out</button>
+      </form>
+    {% else %}
+      <a href="{% url 'users:login' %}">Sign in</a>
+      <a href="{% url 'users:register' %}">Register</a>
+    {% endif %}
+  </div>
+
+  <div>
+    <a href="{% url 'users:user_search' %}">User Search</a>
+
+    <div>
+      <label for="post-search">Post Search</label>
+      <form method="get" action="{% url 'posts:post_search' %}">
+        <input type="search" id="post-search" name="q" placeholder="Search posts..." value="{{ request.GET.q }}" autocomplete="off">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="nav-links">
+    <a href="{% url 'posts:post_list' %}">Main Page</a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'posts:post_create' %}">Create Post</a>
+    {% endif %}
+  </div>
 </nav>
 <div class="container">
   {% block content %}{% endblock %}

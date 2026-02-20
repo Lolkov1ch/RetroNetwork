@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}{{ profile_user.get_display_name }} - RetroNetwork{% endblock %}
+
+{% block content %}
+<div>
+  <div>
+    
+    {% if is_blocked %}
+      <div>
+        <h2>User Blocked</h2>
+        <p>You have blocked this user. You cannot view their profile.</p>
+        <div>
+          <form method="post" action="{% url 'user_settings:unblock' profile_user.handle %}">
+            {% csrf_token %}
+            <button type="submit">Unblock User</button>
+          </form>
+          <a href="{% url 'posts:post_list' %}">Go back</a>
+        </div>
+      </div>
+    {% elif not can_view_profile %}
+      <div>
+        <h2>This Profile is Private</h2>
+        <p>
+          {% if privacy_visibility == "none" %}
+            This user has set their profile to private. Only they can view it.
+          {% elif privacy_visibility == "friends" %}
+            This profile is visible to friends only.
+          {% endif %}
+        </p>
+        <div>
+          <a href="{% url 'posts:post_list' %}">Go back</a>
+        </div>
+      </div>
+    {% else %}
+      <div>
+        {% if profile_user.avatar %}
+          <img src="{{ profile_user.avatar.url }}" alt="Avatar" width="120" height="120">
+        {% else %}
+          <div>
+            <span>👤</span>
+          </div>
+        {% endif %}
+        
+        <div>
+          <h1>{{ profile_user.get_display_name }}</h1>
+          <p>@{{ profile_user.handle }}</p>
+          
+          {% if profile_user.bio %}
+            <p>{{ profile_user.bio }}</p>
+          {% endif %}
+          
+          <p><strong>Followers:</strong> {{ profile_user.followers.count }}</p>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <p><strong>Email:</strong> {{ profile_user.email }}</p>
+      </div>
+
+      {% if profile_user.birth_date %}
+        <div>
+          <p><strong>Birth Date:</strong> {{ profile_user.birth_date|date:"F d, Y" }}</p>
+        </div>
+      {% endif %}
+
+      {% if is_own_profile %}
+        <div>
+          <a href="{% url 'user_settings:edit_profile' %}">Edit Profile</a>
+          <a href="{% url 'user_settings:friends_list' profile_user.handle %}">Friends</a>
+          <a href="{% url 'user_settings:privacy_settings' %}" >Privacy Settings</a>
+        </div>
+      {% else %}
+        {% if user.is_authenticated %}
+          <div>
+            <a href="{% url 'user_settings:friends_list' profile_user.handle %}">Friends</a>
+            {% if is_following %}
+              <form method="post" action="{% url 'users:unfollow' profile_user.handle %}">
+                {% csrf_token %}
+                <button type="submit">
+                  ✓ Following
+                </button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'users:follow' profile_user.handle %}">
+                {% csrf_token %}
+                <button type="submit">
+                  Follow
+                </button>
+              </form>
+            {% endif %}
+            {% if friend_request %}
+              {% if friend_request_status == "pending" %}
+                {% if friend_request.receiver == user %}
+                  <form method="post" action="{% url 'user_settings:accept_friend_request' profile_user.handle %}">
+                    {% csrf_token %}
+                    <button type="submit">
+                      Accept Friend Request
+                    </button>
+                  </form>
+                  <form method="post" action="{% url 'user_settings:reject_friend_request' profile_user.handle %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit">
+                      Reject Friend Request
+                    </button>
+                  </form>
+                {% else %}
+                  <button disabled>
+                    Friend Request Sent
+                  </button>
+                {% endif %}
+              {% elif friend_request_status == "accepted" %}
+                <button disabled>
+                  ✓ Friends
+                </button>
+              {% endif %}
+            {% else %}
+              <form method="post" action="{% url 'user_settings:send_friend_request' profile_user.handle %}">
+                {% csrf_token %}
+                <button type="submit">
+                  Add Friend
+                </button>
+              </form>
+            {% endif %}
+
+            {% if is_blocking %}
+              <form method="post" action="{% url 'user_settings:unblock' profile_user.handle %}">
+                {% csrf_token %}
+                <button type="submit">
+                  Blocked (Unblock)
+                </button>
+              </form>
+            {% else %}
+              <form method="post" action="{% url 'user_settings:block' profile_user.handle %}">
+                {% csrf_token %}
+                <button type="submit">
+                  Block User
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+  
+  {% if not is_own_profile and not user.is_authenticated %}
+    <div>
+      <a href="{% url 'user_settings:friends_list' profile_user.handle %}">Friends</a>
+    </div>
+  {% endif %}
+
+  {% if can_view_profile %}
+    <hr>
+    <h2>Posts</h2>
+    {% if posts %}
+      <div class="user-posts">
+        {% for post in posts %}
+          <div class="user-post">
+            <a href="{% url 'posts:post_detail' post.id %}" style="text-decoration: none; color: inherit;">
+              {% if post.thumbnail_url %}
+                <div class="user-post-thumbnail-container">
+                  <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}">
+                  <div class="user-post-thumbnail-overlay"></div>
+                </div>
+              {% elif post.images or post.videos %}
+                <div class="user-post-thumbnail-container">
+                  {% if post.images %}
+                    <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
+                  {% elif post.videos %}
+                    <video>
+                      <source src="{{ post.videos.0.file.url }}" type="video/mp4">
+                    </video>
+                  {% endif %}
+                  <div class="user-post-thumbnail-overlay"></div>
+                </div>
+              {% endif %}
+              <h3 class="user-post-title">{{ post.title }}</h3>
+              <p class="user-post-description">{{ post.description }}</p>
+              <small class="user-post-date">Posted on {{ post.created_at|date:"F d, Y" }}</small>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No posts yet.</p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -3,10 +3,10 @@ from .views import (LoginView,
                     RegisterView, 
                     LogoutView, 
                     ProfileView, 
-                    ProfileUpdateView, 
-                    CustomPasswordChangeView, 
-                    NotificationSettingsUpdateView, 
-                    PrivacySettingsUpdateView)
+                    UserSearchView,
+                    UserDetailView,
+                    FollowView,
+                    UnfollowView)
 
 app_name = "users"
 
@@ -15,8 +15,8 @@ urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", ProfileView.as_view(), name="profile"),
-    path('profile/edit/', ProfileUpdateView.as_view(), name='edit_profile'),
-    path('profile/password/', CustomPasswordChangeView.as_view(), name='change_password'),
-    path('profile/notifications/', NotificationSettingsUpdateView.as_view(), name='notification_settings'),
-    path('profile/privacy/', PrivacySettingsUpdateView.as_view(), name='privacy_settings'),
+    path('search/', UserSearchView.as_view(), name='user_search'),
+    path('@<str:handle>/follow/', FollowView.as_view(), name='follow'),
+    path('@<str:handle>/unfollow/', UnfollowView.as_view(), name='unfollow'),
+    path('@<str:handle>/', UserDetailView.as_view(), name='user_detail'),
 ]

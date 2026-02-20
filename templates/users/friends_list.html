@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}{{ profile_user.get_display_name }}'s Friends - RetroNetwork{% endblock %}
+
+{% block content %}
+<div>
+  <h1>{{ profile_user.get_display_name }}'s Friends</h1>
+  <p>@{{ profile_user.handle }}</p>
+  
+  {% if is_blocked %}
+    <div>
+      <h2>User Blocked</h2>
+      <p>You have blocked this user. You cannot view their friends.</p>
+      <a href="{% url 'posts:post_list' %}">Go back</a>
+    </div>
+  {% elif not can_view_friends %}
+    <div>
+      <h2>Friends List Private</h2>
+      <p>This user has set their friends list to private.</p>
+      <a href="{% url 'users:user_detail' profile_user.handle %}">Back to profile</a>
+    </div>
+  {% else %}
+    {% if friends %}
+      <p><strong>Friends ({{ friends.count }}):</strong></p>
+      <div>
+        {% for friend in friends %}
+          <div>
+            {% if friend.avatar %}
+              <img src="{{ friend.avatar.url }}" alt="{{ friend.get_display_name }}" width="100" height="100">
+            {% else %}
+              <div>
+                <span>👤</span>
+              </div>
+            {% endif %}
+            <h3>
+              <a href="{% url 'users:user_detail' friend.handle %}">{{ friend.get_display_name }}</a>
+            </h3>
+            <p>@{{ friend.handle }}</p>
+            {% if friend.bio %}
+              <p>{{ friend.bio|truncatewords:15 }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No friends yet.</p>
+    {% endif %}
+    
+    <hr>
+    <a href="{% url 'users:user_detail' profile_user.handle %}">Back to profile</a>
+  {% endif %}
+</div>
+{% endblock %}

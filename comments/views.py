@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.views import View
 from django.urls import reverse
 from reactions.models import Like
+from user_settings.models import Block
 
 from posts.models import Post
 from .models import Comment
@@ -20,6 +21,12 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         post_pk = self.kwargs.get("pk")
         post = get_object_or_404(Post, pk=post_pk)
+
+        is_blocked = Block.objects.filter(blocker=post.author, blocked_user=self.request.user).exists()
+        if is_blocked:
+            messages.error(self.request, "You cannot comment on this post. You have been blocked by the post author.")
+            return redirect(self.request.META.get("HTTP_REFERER", "/"))
+        
         form.instance.post = post
         form.instance.author = self.request.user
         return super().form_valid(form)

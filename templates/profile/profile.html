@@ -2,7 +2,8 @@
 {% block title %}RetroNetwork | Profile{% endblock %}
 
 {% block content %}
-<h1>Profile {{ user.nickname|default:user.username }}</h1>
+<h1>{{ user.get_display_name }}</h1>
+<p>@{{ user.handle }}</p>
 
 {% if user.avatar %}
     <img src="{{ user.avatar.url }}" alt="Avatar" width="120">
@@ -10,13 +11,12 @@
     <p>No avatar</p>
 {% endif %}
 
-<p><strong>Username:</strong> {{ user.username }}</p>
-<p><strong>Nickname:</strong> {{ user.nickname|default:"-" }}</p>
-<p><strong>Tag:</strong> {{ user.tag|default:"-" }}</p>
-<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Nickname:</strong> @{{ user.handle }}</p>
+<p><strong>Followers:</strong> {{ user.followers.count }}</p>
 {% if user.bio %}
     <p><strong>Bio:</strong> {{ user.bio }}</p>
 {% endif %}
+<p><strong>Email:</strong> {{ user.email }}</p>
 {% if user.birth_date %}
     <p><strong>Birth Date:</strong> {{ user.birth_date }}</p>
 {% endif %}
@@ -26,13 +26,44 @@
 
 <hr>
 
-<h2>Settings</h2>
-<ul>
-    <li><a href="{% url 'users:edit_profile' %}">Edit profile</a></li>
-    <li><a href="{% url 'users:change_password' %}">Change password</a></li>
-    <li><a href="{% url 'users:notification_settings' %}">Notifications settings</a></li>
-    <li><a href="{% url 'users:privacy_settings' %}">Privacy</a></li>
-</ul>
+<a href="{% url 'user_settings:edit_profile' %}">Go to Settings</a>
+
+<hr>
+
+<h2>Posts</h2>
+{% if posts %}
+  <div class="user-posts">
+    {% for post in posts %}
+      <div class="user-post">
+        <a href="{% url 'posts:post_detail' post.id %}" style="text-decoration: none; color: inherit;">
+          {% if post.thumbnail_url %}
+            <div class="user-post-thumbnail-container">
+              <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}">
+              <div class="user-post-thumbnail-overlay"></div>
+            </div>
+          {% elif post.images %}
+            <div class="user-post-thumbnail-container">
+              <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
+              <div class="user-post-thumbnail-overlay"></div>
+            </div>
+          {% elif post.videos %}
+            <div class="user-post-thumbnail-container">
+              <video muted preload="metadata">
+                <source src="{{ post.videos.0.file.url }}" type="video/mp4">
+              </video>
+              <div class="user-post-thumbnail-overlay"></div>
+            </div>
+          {% endif %}
+          <h3 class="user-post-title">{{ post.title }}</h3>
+          <p class="user-post-description">{{ post.description }}</p>
+          <small class="user-post-date">Posted on {{ post.created_at|date:"F d, Y" }}</small>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>No posts yet.</p>
+{% endif %}
 
 <hr>
 

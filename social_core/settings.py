@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'comments',
     'reactions',
     'attachments',
+    'user_settings',
 ]
 
 MIDDLEWARE = [
@@ -120,6 +121,10 @@ USE_I18N = True
 USE_TZ = True
 
 AUTH_USER_MODEL = "users.User"
+
+AUTHENTICATION_BACKENDS = [
+    'users.backends.EmailBackend',
+]
 
 LOGIN_URL = "users:login"
 

@@ -1,44 +1,53 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+import re
+
+
+def validate_handle(value):
+    if not re.match(r'^[a-zA-Z0-9_.]{2,30}$', value):
+        raise ValidationError(
+            'Handle must be 2-30 characters and contain only letters, numbers, underscores, and dots.'
+        )
+    if value.startswith('.') or value.endswith('.'):
+        raise ValidationError('Handle cannot start or end with a dot.')
+    if '..' in value:
+        raise ValidationError('Handle cannot contain consecutive dots.')
 
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    nickname = models.CharField(max_length=50, unique=True)
-    tag = models.CharField(max_length=10, blank=True)
-    bio = models.TextField(blank=True)
+    display_name = models.CharField(max_length=50, blank=True, help_text="Public nickname (can contain spaces)")
+    handle = models.CharField(
+        max_length=30,
+        unique=True,
+        validators=[validate_handle],
+        help_text="Unique username (2-30 chars, no spaces)"
+    )
+    bio = models.TextField(blank=True, max_length=500)
     birth_date = models.DateField(null=True, blank=True)
-
     avatar = models.ImageField(upload_to="avatars/", blank=True)
     # last_online = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return self.username
+        return f"@{self.handle}" if self.handle else self.username
+    
+    def get_display_name(self):
+        return self.display_name if self.display_name else self.handle
 
 
-class AccountSettings(models.Model):
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="account_settings"
-    )
-    password_changed_at = models.DateTimeField(null=True, blank=True)
-
+class Follow(models.Model):
+    follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name="following")
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name="followers")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('follower', 'following')
+        indexes = [
+            models.Index(fields=['follower', 'following']),
+        ]
+    
     def __str__(self):
-        return f"Account settings for {self.user}"
+        return f"{self.follower.handle} follows {self.following.handle}"
 
-
-class NotificationSettings(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notification_settings")
-    likes = models.BooleanField(default=True)
-    comments = models.BooleanField(default=True)
-
-
-class PrivacySettings(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name="privacy_settings")
-    profile_visibility = models.CharField(
-        max_length=10,
-        choices=[("all", "All"),("friends", "Friends"),("none", "Nobody"),],
-        default="all"
-        )
 

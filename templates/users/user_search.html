@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}User Search - RetroNetwork{% endblock %}
+
+{% block content %}
+<h1>User Search</h1>
+
+<div>
+  <form method="get" action="{% url 'users:user_search' %}">
+    <input type="search" name="q" placeholder="Search by handle, name, or bio..." value="{{ search_query }}" autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+</div>
+
+{% if search_query %}
+  <p><strong>Search results for: "{{ search_query }}"</strong></p>
+{% endif %}
+
+{% if users %}
+  <div>
+    {% for user in users %}
+      <div>
+        <a href="{% url 'users:user_detail' user.handle %}">
+          <div>
+            {% if user.avatar %}
+              <img src="{{ user.avatar.url }}" alt="Avatar" width="80" height="80">
+            {% else %}
+              <div>
+                <span>👤</span>
+              </div>
+            {% endif %}
+            
+            <div>
+              <h2>
+                {% if user.display_name %}
+                  {{ user.display_name }}
+                {% else %}
+                  {{ user.get_display_name }}
+                {% endif %}
+              </h2>
+              <p>@{{ user.handle }}</p>
+              
+              {% if user.bio %}
+                <p>{{ user.bio }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+    <div>
+      {% if page_obj.has_previous %}
+        <a href="?q={{ search_query }}&page=1">First</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+      {% endif %}
+
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% else %}
+  {% if search_query %}
+    <p>No users found matching "{{ search_query }}"</p>
+  {% else %}
+    <p>Enter a search query to find users.</p>
+  {% endif %}
+{% endif %}
+
+{% endblock %}

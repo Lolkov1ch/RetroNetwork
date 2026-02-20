@@ -1,23 +1,90 @@
+{% extends 'base.html' %}
 {% block title %}RetroNetwork | Register{% endblock %}
-<h1>Register</h1>
 
-<form method="post">
-  {% csrf_token %}
+{% block content %}
+<div>
+  <h1>Create Your Account</h1>
 
-  {{ form.non_field_errors }}
+  <form method="post">
+    {% csrf_token %}
 
-  {% for field in form %}
+    {% if form.non_field_errors %}
+      <div>
+        <strong>Error:</strong>
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div>
-      {{ field.label_tag }}
-      {{ field }}
-      {{ field.errors }}
+      <label for="{{ form.email.id_for_label }}">Email Address *</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+        <div>
+          {% for error in form.email.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
-  {% endfor %}
 
-  <button type="submit">Create account</button>
-</form>
+    <div>
+      <label for="{{ form.handle.id_for_label }}" >Username (@username) *</label>
+      {{ form.handle }}
+      <small>Unique identifier (2-30 chars: letters, numbers, _, .)</small>
+      {% if form.handle.errors %}
+        <div>
+          {% for error in form.handle.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
 
-<p>
-  Already have an account?
-  <a href="{% url 'users:login' %}">Sign in</a>
-</p>
+    <div >
+      <label for="{{ form.display_name.id_for_label }}">Display Name</label>
+      {{ form.display_name }}
+      <small>Your public name (can contain spaces, optional)</small>
+      {% if form.display_name.errors %}
+        <div>
+          {% for error in form.display_name.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <label for="{{ form.password1.id_for_label }}">Password *</label>
+      {{ form.password1 }}
+      {% if form.password1.errors %}
+        <div>
+          {% for error in form.password1.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <label for="{{ form.password2.id_for_label }}">Confirm Password *</label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}
+        <div>
+          {% for error in form.password2.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="submit">Create Account</button>
+  </form>
+
+  <p>
+    Already have an account?
+    <a href="{% url 'users:login' %}">Sign in</a>
+  </p>
+</div>
+{% endblock %}

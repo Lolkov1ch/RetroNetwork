@@ -5,6 +5,7 @@ from attachments.models import Media
 from .forms import PostMediaForm
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from .thumbnail_utils import generate_post_thumbnail
 
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif')
 VIDEO_EXTENSIONS = ('.mp4', '.webm', '.avi', '.mov','.mkv')
@@ -47,5 +48,6 @@ def handle_media_upload(request, post):
             )
         except ValidationError as e:
             messages.error(request, str(e))
-    
+
+    generate_post_thumbnail(post)
     return True

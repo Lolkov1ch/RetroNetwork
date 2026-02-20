@@ -4,5 +4,8 @@ from .models import User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_display = ('handle', 'display_name', 'email', 'is_staff')
+    search_fields = ('username', 'handle', 'email', 'display_name')
+    fieldsets = UserAdmin.fieldsets + (
+        ('Profile', {'fields': ('display_name', 'handle', 'bio', 'avatar', 'birth_date')}),
+    )

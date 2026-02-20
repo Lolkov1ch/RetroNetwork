@@ -1,21 +1,52 @@
-{% block title %}RetroNetwork | Login{% endblock %}
-<h1>Sign in</h1>
-<form method="post">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div>
-    {{ form.username.label_tag }}
-    {{ form.username }}
-    {{ form.username.errors }}
-  </div>
-  <div>
-    {{ form.password.label_tag }}
-    {{ form.password }}
-    {{ form.password.errors }}
-  </div>
-  <button type="submit">Sign in</button>
-</form>
-<p>
-  Don't have an account?
-  <a href="{% url 'users:register' %}">Register</a>
-</p>
+{% extends 'base.html' %}
+{% block title %}RetroNetwork | Sign In{% endblock %}
+
+{% block content %}
+<div>
+  <h1>Sign In</h1>
+  
+  <form method="post">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div>
+        <strong>Error:</strong>
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div>
+      <label for="{{ form.username.id_for_label }}">Email or Tag</label>
+      {{ form.username }}
+      {% if form.username.errors %}
+        <div>
+          {% for error in form.username.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+      {% if form.password.errors %}
+        <div>
+          {% for error in form.password.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="submit">Sign In</button>
+  </form>
+
+  <p>
+    Don't have an account?
+    <a href="{% url 'users:register' %}">Register</a>
+  </p>
+</div>
+{% endblock %}

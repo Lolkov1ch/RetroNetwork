@@ -9,7 +9,7 @@
     <button type="submit">Save</button>
 </form>
 
-<a href="{% url 'users:change_password' %}">Edit password</a> |
-<a href="{% url 'users:notification_settings' %}">Notifications</a> |
-<a href="{% url 'users:privacy_settings' %}">Privacy</a>
+<a href="{% url 'user_settings:change_password' %}">Edit password</a> |
+<a href="{% url 'user_settings:notification_settings' %}">Notifications</a> |
+<a href="{% url 'user_settings:privacy_settings' %}">Privacy</a>
 {% endblock %}
