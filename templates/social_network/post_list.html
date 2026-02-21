@@ -1,117 +1,96 @@
 {% extends "base.html" %}
-{% block title %}RetroNetwork | Post List{% endblock %}
+{% block title %}RetroNetwork | Posts{% endblock %}
 {% block content %}
-<h1>Post List</h1>
-<div class="post-list" id="posts-container">
-    {% for post in posts %}
-        <a href="{% url 'posts:post_detail' post.pk %}" style="text-decoration: none; color: inherit;">
-            <div class="post">
-                {% if post.thumbnail_url %}
-                    <div class="post-thumbnail-container">
-                        <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}" style="width: 100%; height: 100%; object-fit: cover;">
-                        <div class="post-thumbnail-overlay"></div>
-                    </div>
-                {% elif post.images or post.videos %}
-                    <div class="post-thumbnail-container">
-                        {% if post.images %}
-                            <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}" style="width: 100%; height: 100%; object-fit: cover;">
-                        {% elif post.videos %}
-                            <video style="width: 100%; height: 100%; object-fit: cover;">
-                                <source src="{{ post.videos.0.file.url }}" type="video/mp4">
-                            </video>
-                        {% endif %}
-                        <div class="post-thumbnail-overlay"></div>
-                    </div>
+
+<div class="panel">
+  <div class="panel-header">[ Post Feed ]</div>
+  <div class="panel-body" style="padding:6px;">
+
+    <div class="post-list" id="posts-container">
+      {% for post in posts %}
+        <a href="{% url 'posts:post_detail' post.pk %}" class="post-link">
+          <div class="post">
+            {% if post.thumbnail_url %}
+              <div class="post-thumbnail-container">
+                <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}">
+                <div class="post-thumbnail-overlay"></div>
+              </div>
+            {% elif post.images or post.videos %}
+              <div class="post-thumbnail-container">
+                {% if post.images %}
+                  <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
+                {% elif post.videos %}
+                  <video><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
                 {% endif %}
-                <div class="post-info">
-                    <h2>{{ post.title|truncatewords:5 }}</h2>
-                    <p class="post-description">{{ post.description|truncatewords:10 }}</p>
-                    <div class="post-meta">
-                        <p>By <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></p>
-                        <p>{{ post.created_at|date:"d.m.Y H:i" }}</p>
-                    </div>
-                    <div class="post-actions">
-                        <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
-                            {% csrf_token %}
-                            <button type="submit">❤️ {{ post.likes.count }}</button>
-                        </form>
-                        {% if user.is_authenticated and user == post.author %}
-                            <button type="button" onclick="event.stopPropagation(); window.location.href='{% url 'posts:post_update' post.pk %}';">✏️ Edit</button>
-                            <button type="button" onclick="event.stopPropagation(); window.location.href='{% url 'posts:post_delete' post.pk %}';">🗑️ Delete</button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </a>
-    {% empty %}
-        <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
-            <p>No posts available.</p>
-            {% if user.is_authenticated %}
-                <a href="{% url 'posts:post_create' %}">Create Post</a>
-            {% else %}
-                <p><a href="{% url 'users:login' %}">Log in</a> to create posts.</p>
+                <div class="post-thumbnail-overlay"></div>
+              </div>
             {% endif %}
+            <div class="post-info">
+              <h2>{{ post.title|truncatewords:5 }}</h2>
+              <p class="post-description">{{ post.description|truncatewords:10 }}</p>
+              <div class="post-meta">
+                <span>by <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></span>
+                <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
+              </div>
+              <div class="post-actions">
+                <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
+                  {% csrf_token %}
+                  <button type="submit">♥ {{ post.likes.count }}</button>
+                </form>
+                {% if user.is_authenticated and user == post.author %}
+                  <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.pk %}';">Edit</button>
+                  <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.pk %}';">Del</button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </a>
+      {% empty %}
+        <div class="empty-state">
+          <p>// No posts yet.</p>
+          {% if user.is_authenticated %}
+            <a href="{% url 'posts:post_create' %}" class="btn btn-primary">Create first post</a>
+          {% else %}
+            <p><a href="{% url 'users:login' %}">Sign in</a> to create posts.</p>
+          {% endif %}
         </div>
-    {% endfor %}
-</div>
+      {% endfor %}
+    </div>
 
-<div id="loading" style="text-align: center; padding: 2rem; display: none;">
-    <p>Loading more posts...</p>
-</div>
+    <div id="loading" class="feed-status" style="display:none;">// Loading more posts...</div>
+    <div id="no-more-posts" class="feed-status" style="display:none;">// End of feed.</div>
 
-<div id="no-more-posts" style="text-align: center; padding: 2rem; display: none;">
-    <p>No more posts to load.</p>
+  </div>
 </div>
 
 <script>
-    let currentPage = 1;
-    let hasMore = {{ is_paginated|lower }};
-    let isLoading = false;
-    const searchQuery = '{{ request.GET.q }}';
+  let currentPage = 1;
+  let hasMore = {{ is_paginated|lower }};
+  let isLoading = false;
+  const searchQuery = '{{ request.GET.q }}';
 
-    function loadMorePosts() {
-        if (isLoading || !hasMore) return;
-        
-        isLoading = true;
-        document.getElementById('loading').style.display = 'block';
-        
-        currentPage++;
-        
-        fetch(`{% url 'posts:posts_api' %}?page=${currentPage}&q=${searchQuery}`)
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('posts-container');
-                
-                const temp = document.createElement('div');
-                temp.innerHTML = data.html;
-                
-                while (temp.firstChild) {
-                    container.appendChild(temp.firstChild);
-                }
-                
-                hasMore = data.has_more;
-                isLoading = false;
-                
-                document.getElementById('loading').style.display = 'none';
-                
-                if (!hasMore) {
-                    document.getElementById('no-more-posts').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading posts:', error);
-                isLoading = false;
-                document.getElementById('loading').style.display = 'none';
-            });
-    }
+  function loadMorePosts() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    document.getElementById('loading').style.display = 'block';
+    currentPage++;
+    fetch(`{% url 'posts:posts_api' %}?page=${currentPage}&q=${searchQuery}`)
+      .then(r => r.json())
+      .then(data => {
+        const container = document.getElementById('posts-container');
+        const temp = document.createElement('div');
+        temp.innerHTML = data.html;
+        while (temp.firstChild) container.appendChild(temp.firstChild);
+        hasMore = data.has_more;
+        isLoading = false;
+        document.getElementById('loading').style.display = 'none';
+        if (!hasMore) document.getElementById('no-more-posts').style.display = 'block';
+      })
+      .catch(() => { isLoading = false; document.getElementById('loading').style.display = 'none'; });
+  }
 
-    window.addEventListener('scroll', function() {
-        const scrollPosition = window.innerHeight + window.scrollY;
-        const threshold = document.body.offsetHeight - 500;
-        
-        if (scrollPosition >= threshold && hasMore && !isLoading) {
-            loadMorePosts();
-        }
-    });
+  window.addEventListener('scroll', function() {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) loadMorePosts();
+  });
 </script>
 {% endblock %}

@@ -1,13 +1,37 @@
 {% extends "base.html" %}
+{% block title %}RetroNetwork | Notifications{% endblock %}
 
 {% block content %}
-<h2>Notifications settings</h2>
+<div class="settings-layout">
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
-</form>
+  <div class="settings-sidebar">
+    <div class="panel">
+      <div class="panel-header">[ Settings ]</div>
+      <div class="panel-body" style="padding:0;">
+        <a href="{% url 'user_settings:edit_profile' %}" class="settings-nav-item">Edit Profile</a>
+        <a href="{% url 'user_settings:change_password' %}" class="settings-nav-item">Password</a>
+        <a href="{% url 'user_settings:notification_settings' %}" class="settings-nav-item active">Notifications</a>
+        <a href="{% url 'user_settings:privacy_settings' %}" class="settings-nav-item">Privacy</a>
+        <a href="{% url 'users:profile' %}" class="settings-nav-item">← My Page</a>
+      </div>
+    </div>
+  </div>
 
-<a href="{% url 'user_settings:edit_profile' %}">Back to profile</a>
+  <div class="settings-main">
+    <div class="panel">
+      <div class="panel-header">[ Notification Settings ]</div>
+      <div class="panel-body">
+        <form method="post">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <div class="actions" style="margin-top:10px;">
+            <button type="submit">Save</button>
+            <a href="{% url 'users:profile' %}" class="btn">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
 {% endblock %}

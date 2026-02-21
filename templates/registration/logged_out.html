@@ -1,9 +1,18 @@
 {% extends 'base.html' %}
 {% block title %}RetroNetwork | Logged Out{% endblock %}
 {% block content %}
-<h1>You have logged out</h1>
-<a href="{% url 'users:login' %}">Sign in again</a>
-<p>
-  <a href="{% url 'posts:post_list' %}">Return to the main page</a>
-</p>
+<div class="auth-wrap">
+  <div class="panel auth-panel">
+    <div class="panel-header">[ Session Ended ]</div>
+    <div class="panel-body" style="text-align:center;padding:24px 20px;">
+      <p style="color:var(--green);font-family:var(--font-mono);font-size:14px;margin-bottom:16px;">
+        You have been logged out.
+      </p>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <a href="{% url 'users:login' %}" class="btn btn-primary">Sign in again</a>
+        <a href="{% url 'posts:post_list' %}" class="btn">Main Page</a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

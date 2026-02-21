@@ -2,36 +2,37 @@
 {% block title %}Post Search - RetroNetwork{% endblock %}
 
 {% block content %}
-<h1>Post Search</h1>
+<div class="panel">
+  <div class="panel-header">[ Post Search ]</div>
+  <div class="panel-body">
 
-<div>
-  <form method="get" action="{% url 'posts:post_search' %}">
-    <input type="search" name="q" placeholder="Search posts by title or description..." value="{{ search_query }}" autocomplete="off">
-    <button type="submit">Search</button>
-  </form>
+    <form method="get" action="{% url 'posts:post_search' %}" class="search-bar">
+      <input type="search" name="q" placeholder="Search by title or description..." value="{{ search_query }}" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+
+    {% if search_query %}
+      <p class="search-results-label">Results for: "{{ search_query }}"</p>
+    {% endif %}
+
+  </div>
 </div>
-
-{% if search_query %}
-  <p><strong>Search results for: "{{ search_query }}"</strong></p>
-{% endif %}
 
 <div class="post-list">
   {% for post in posts %}
-    <a href="{% url 'posts:post_detail' post.pk %}" style="text-decoration: none; color: inherit;">
+    <a href="{% url 'posts:post_detail' post.pk %}" class="post-link">
       <div class="post">
         {% if post.thumbnail_url %}
           <div class="post-thumbnail-container">
-            <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}">
             <div class="post-thumbnail-overlay"></div>
           </div>
         {% elif post.images or post.videos %}
           <div class="post-thumbnail-container">
             {% if post.images %}
-              <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+              <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
             {% elif post.videos %}
-              <video style="width: 100%; height: 100%; object-fit: cover;">
-                <source src="{{ post.videos.0.file.url }}" type="video/mp4">
-              </video>
+              <video><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
             {% endif %}
             <div class="post-thumbnail-overlay"></div>
           </div>
@@ -40,29 +41,31 @@
           <h2>{{ post.title|truncatewords:5 }}</h2>
           <p class="post-description">{{ post.description|truncatewords:10 }}</p>
           <div class="post-meta">
-            <p>By <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></p>
-            <p>{{ post.created_at|date:"d.m.Y H:i" }}</p>
+            <span>by <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></span>
+            <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
           </div>
           <div class="post-actions">
             <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
               {% csrf_token %}
-              <button type="submit">❤️ {{ post.likes.count }}</button>
+              <button type="submit">♥ {{ post.likes.count }}</button>
             </form>
             {% if user.is_authenticated and user == post.author %}
-              <button type="button" onclick="event.stopPropagation(); window.location.href='{% url 'posts:post_update' post.pk %}';">✏️ Edit</button>
-              <button type="button" onclick="event.stopPropagation(); window.location.href='{% url 'posts:post_delete' post.pk %}';">🗑️ Delete</button>
+              <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.pk %}';">Edit</button>
+              <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.pk %}';">Del</button>
             {% endif %}
           </div>
         </div>
       </div>
     </a>
   {% empty %}
-    <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">
-      {% if search_query %}
-        <p>No posts found matching "{{ search_query }}"</p>
-      {% else %}
-        <p>Enter a search query to find posts.</p>
-      {% endif %}
+    <div class="panel">
+      <div class="panel-body empty-state">
+        {% if search_query %}
+          // No posts found for "{{ search_query }}"
+        {% else %}
+          // Enter a query to search posts.
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
 </div>
@@ -71,9 +74,8 @@
   <div class="pagination">
     {% if page_obj.has_previous %}
       <a href="?q={{ search_query }}&page=1">« First</a>
-      <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">‹ Previous</a>
+      <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">‹ Prev</a>
     {% endif %}
-
     {% for num in page_obj.paginator.page_range %}
       {% if page_obj.number == num %}
         <span class="current">{{ num }}</span>
@@ -81,7 +83,6 @@
         <a href="?q={{ search_query }}&page={{ num }}">{{ num }}</a>
       {% endif %}
     {% endfor %}
-
     {% if page_obj.has_next %}
       <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next ›</a>
       <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last »</a>

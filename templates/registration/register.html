@@ -2,89 +2,57 @@
 {% block title %}RetroNetwork | Register{% endblock %}
 
 {% block content %}
-<div>
-  <h1>Create Your Account</h1>
+<div class="auth-wrap">
+  <div class="panel auth-panel">
+    <div class="panel-header">[ Create Account ]</div>
+    <div class="panel-body">
 
-  <form method="post">
-    {% csrf_token %}
-
-    {% if form.non_field_errors %}
-      <div>
-        <strong>Error:</strong>
-        {% for error in form.non_field_errors %}
-          <p>{{ error }}</p>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <div>
-      <label for="{{ form.email.id_for_label }}">Email Address *</label>
-      {{ form.email }}
-      {% if form.email.errors %}
-        <div>
-          {% for error in form.email.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
         </div>
       {% endif %}
-    </div>
 
-    <div>
-      <label for="{{ form.handle.id_for_label }}" >Username (@username) *</label>
-      {{ form.handle }}
-      <small>Unique identifier (2-30 chars: letters, numbers, _, .)</small>
-      {% if form.handle.errors %}
-        <div>
-          {% for error in form.handle.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-field">
+          <label for="{{ form.email.id_for_label }}">Email Address *</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="field-errors">{% for e in form.email.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
         </div>
-      {% endif %}
-    </div>
 
-    <div >
-      <label for="{{ form.display_name.id_for_label }}">Display Name</label>
-      {{ form.display_name }}
-      <small>Your public name (can contain spaces, optional)</small>
-      {% if form.display_name.errors %}
-        <div>
-          {% for error in form.display_name.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+        <div class="form-field">
+          <label for="{{ form.handle.id_for_label }}">Username (@handle) *</label>
+          {{ form.handle }}
+          <small>2–30 chars: letters, numbers, _ or .</small>
+          {% if form.handle.errors %}<div class="field-errors">{% for e in form.handle.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
         </div>
-      {% endif %}
-    </div>
 
-    <div>
-      <label for="{{ form.password1.id_for_label }}">Password *</label>
-      {{ form.password1 }}
-      {% if form.password1.errors %}
-        <div>
-          {% for error in form.password1.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+        <div class="form-field">
+          <label for="{{ form.display_name.id_for_label }}">Display Name</label>
+          {{ form.display_name }}
+          <small>Optional public name (spaces allowed)</small>
+          {% if form.display_name.errors %}<div class="field-errors">{% for e in form.display_name.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
         </div>
-      {% endif %}
-    </div>
 
-    <div>
-      <label for="{{ form.password2.id_for_label }}">Confirm Password *</label>
-      {{ form.password2 }}
-      {% if form.password2.errors %}
-        <div>
-          {% for error in form.password2.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+        <div class="form-field">
+          <label for="{{ form.password1.id_for_label }}">Password *</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<div class="field-errors">{% for e in form.password1.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
         </div>
-      {% endif %}
+
+        <div class="form-field">
+          <label for="{{ form.password2.id_for_label }}">Confirm Password *</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<div class="field-errors">{% for e in form.password2.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+        </div>
+
+        <button type="submit" style="width:100%;margin-top:6px;letter-spacing:2px;">Create Account</button>
+      </form>
+
+      <p class="auth-alt">Already have an account? <a href="{% url 'users:login' %}">Sign in</a></p>
     </div>
-
-    <button type="submit">Create Account</button>
-  </form>
-
-  <p>
-    Already have an account?
-    <a href="{% url 'users:login' %}">Sign in</a>
-  </p>
+  </div>
 </div>
 {% endblock %}

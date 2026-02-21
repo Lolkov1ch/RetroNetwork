@@ -2,74 +2,64 @@
 {% block title %}User Search - RetroNetwork{% endblock %}
 
 {% block content %}
-<h1>User Search</h1>
-
-<div>
-  <form method="get" action="{% url 'users:user_search' %}">
-    <input type="search" name="q" placeholder="Search by handle, name, or bio..." value="{{ search_query }}" autocomplete="off">
-    <button type="submit">Search</button>
-  </form>
+<div class="panel">
+  <div class="panel-header">[ User Search ]</div>
+  <div class="panel-body">
+    <form method="get" action="{% url 'users:user_search' %}" class="search-bar">
+      <input type="search" name="q" placeholder="Search by handle, name or bio..." value="{{ search_query }}" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+    {% if search_query %}
+      <p class="search-results-label">Results for: "{{ search_query }}"</p>
+    {% endif %}
+  </div>
 </div>
 
-{% if search_query %}
-  <p><strong>Search results for: "{{ search_query }}"</strong></p>
-{% endif %}
-
 {% if users %}
-  <div>
-    {% for user in users %}
-      <div>
-        <a href="{% url 'users:user_detail' user.handle %}">
-          <div>
-            {% if user.avatar %}
-              <img src="{{ user.avatar.url }}" alt="Avatar" width="80" height="80">
-            {% else %}
-              <div>
-                <span>👤</span>
-              </div>
-            {% endif %}
-            
-            <div>
-              <h2>
-                {% if user.display_name %}
-                  {{ user.display_name }}
-                {% else %}
-                  {{ user.get_display_name }}
-                {% endif %}
-              </h2>
-              <p>@{{ user.handle }}</p>
-              
-              {% if user.bio %}
-                <p>{{ user.bio }}</p>
+  <div class="panel">
+    <div class="panel-body" style="padding:0;">
+      {% for user in users %}
+        <a href="{% url 'users:user_detail' user.handle %}" style="text-decoration:none;">
+          <div class="user-card">
+            <div class="user-card-avatar">
+              {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="avatar">
+              {% else %}
+                <div class="user-card-avatar-placeholder">👤</div>
               {% endif %}
+            </div>
+            <div class="user-card-info">
+              <h2>{% if user.display_name %}{{ user.display_name }}{% else %}{{ user.get_display_name }}{% endif %}</h2>
+              <p class="handle">@{{ user.handle }}</p>
+              {% if user.bio %}<p class="bio">{{ user.bio|truncatewords:15 }}</p>{% endif %}
             </div>
           </div>
         </a>
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
   </div>
 
   {% if is_paginated %}
-    <div>
+    <div class="pagination">
       {% if page_obj.has_previous %}
-        <a href="?q={{ search_query }}&page=1">First</a>
-        <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        <a href="?q={{ search_query }}&page=1">« First</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">‹ Prev</a>
       {% endif %}
-
       <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
       {% if page_obj.has_next %}
-        <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next</a>
-        <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">Next ›</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Last »</a>
       {% endif %}
     </div>
   {% endif %}
+
 {% else %}
-  {% if search_query %}
-    <p>No users found matching "{{ search_query }}"</p>
-  {% else %}
-    <p>Enter a search query to find users.</p>
-  {% endif %}
+  <div class="panel">
+    <div class="panel-body empty-state">
+      {% if search_query %}// No users found for "{{ search_query }}"
+      {% else %}// Enter a query to find users.{% endif %}
+    </div>
+  </div>
 {% endif %}
 
 {% endblock %}

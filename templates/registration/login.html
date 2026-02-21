@@ -2,51 +2,41 @@
 {% block title %}RetroNetwork | Sign In{% endblock %}
 
 {% block content %}
-<div>
-  <h1>Sign In</h1>
-  
-  <form method="post">
-    {% csrf_token %}
-    
-    {% if form.non_field_errors %}
-      <div>
-        <strong>Error:</strong>
-        {% for error in form.non_field_errors %}
-          <p>{{ error }}</p>
-        {% endfor %}
-      </div>
-    {% endif %}
+<div class="auth-wrap">
+  <div class="panel auth-panel">
+    <div class="panel-header">[ Sign In ]</div>
+    <div class="panel-body">
 
-    <div>
-      <label for="{{ form.username.id_for_label }}">Email or Tag</label>
-      {{ form.username }}
-      {% if form.username.errors %}
-        <div>
-          {% for error in form.username.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
         </div>
       {% endif %}
-    </div>
 
-    <div>
-      <label for="{{ form.password.id_for_label }}">Password</label>
-      {{ form.password }}
-      {% if form.password.errors %}
-        <div>
-          {% for error in form.password.errors %}
-            <p>{{ error }}</p>
-          {% endfor %}
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-field">
+          <label for="{{ form.username.id_for_label }}">Email or @handle</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <div class="field-errors">{% for e in form.username.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
         </div>
-      {% endif %}
+
+        <div class="form-field">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }}
+          {% if form.password.errors %}
+            <div class="field-errors">{% for e in form.password.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" style="width:100%;margin-top:6px;letter-spacing:2px;">Sign In</button>
+      </form>
+
+      <p class="auth-alt">Don't have an account? <a href="{% url 'users:register' %}">Register</a></p>
     </div>
-
-    <button type="submit">Sign In</button>
-  </form>
-
-  <p>
-    Don't have an account?
-    <a href="{% url 'users:register' %}">Register</a>
-  </p>
+  </div>
 </div>
 {% endblock %}

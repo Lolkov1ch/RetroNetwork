@@ -1,74 +1,92 @@
 {% extends 'base.html' %}
-{% block title %}RetroNetwork | Profile{% endblock %}
+{% block title %}RetroNetwork | My Page{% endblock %}
 
 {% block content %}
-<h1>{{ user.get_display_name }}</h1>
-<p>@{{ user.handle }}</p>
 
-{% if user.avatar %}
-    <img src="{{ user.avatar.url }}" alt="Avatar" width="120">
-{% else %}
-    <p>No avatar</p>
-{% endif %}
+<div class="panel">
+  <div class="panel-header">[ My Page ]</div>
+  <div class="panel-body" style="padding:0;">
 
-<p><strong>Nickname:</strong> @{{ user.handle }}</p>
-<p><strong>Followers:</strong> {{ user.followers.count }}</p>
-{% if user.bio %}
-    <p><strong>Bio:</strong> {{ user.bio }}</p>
-{% endif %}
-<p><strong>Email:</strong> {{ user.email }}</p>
-{% if user.birth_date %}
-    <p><strong>Birth Date:</strong> {{ user.birth_date }}</p>
-{% endif %}
-{% if user.address %}
-    <p><strong>Address:</strong> {{ user.address }}</p>
-{% endif %}
-
-<hr>
-
-<a href="{% url 'user_settings:edit_profile' %}">Go to Settings</a>
-
-<hr>
-
-<h2>Posts</h2>
-{% if posts %}
-  <div class="user-posts">
-    {% for post in posts %}
-      <div class="user-post">
-        <a href="{% url 'posts:post_detail' post.id %}" style="text-decoration: none; color: inherit;">
-          {% if post.thumbnail_url %}
-            <div class="user-post-thumbnail-container">
-              <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}">
-              <div class="user-post-thumbnail-overlay"></div>
-            </div>
-          {% elif post.images %}
-            <div class="user-post-thumbnail-container">
-              <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
-              <div class="user-post-thumbnail-overlay"></div>
-            </div>
-          {% elif post.videos %}
-            <div class="user-post-thumbnail-container">
-              <video muted preload="metadata">
-                <source src="{{ post.videos.0.file.url }}" type="video/mp4">
-              </video>
-              <div class="user-post-thumbnail-overlay"></div>
-            </div>
-          {% endif %}
-          <h3 class="user-post-title">{{ post.title }}</h3>
-          <p class="user-post-description">{{ post.description }}</p>
-          <small class="user-post-date">Posted on {{ post.created_at|date:"F d, Y" }}</small>
-        </a>
+    <div class="profile-header">
+      <div class="profile-avatar">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="Avatar">
+        {% else %}
+          <div class="profile-avatar-placeholder">👤</div>
+        {% endif %}
       </div>
-    {% endfor %}
+      <div class="profile-info">
+        <h1>{{ user.get_display_name }}</h1>
+        <p class="profile-handle">@{{ user.handle }}<span class="online-dot"></span></p>
+        {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% endif %}
+      </div>
+    </div>
+
+    <table class="profile-table">
+      <tr><td>Handle</td><td>@{{ user.handle }}</td></tr>
+      <tr><td>Email</td><td>{{ user.email }}</td></tr>
+      <tr><td>Followers</td><td>{{ user.followers.count }}</td></tr>
+      {% if user.birth_date %}
+        <tr><td>Birth Date</td><td>{{ user.birth_date }}</td></tr>
+      {% endif %}
+      {% if user.address %}
+        <tr><td>Address</td><td>{{ user.address }}</td></tr>
+      {% endif %}
+    </table>
+
+    <div class="profile-actions-bar">
+      <a href="{% url 'user_settings:edit_profile' %}" class="btn">Edit Profile</a>
+      <a href="{% url 'user_settings:change_password' %}" class="btn">Change Password</a>
+      <a href="{% url 'user_settings:notification_settings' %}" class="btn">Notifications</a>
+      <a href="{% url 'user_settings:privacy_settings' %}" class="btn">Privacy</a>
+      <form method="post" action="{% url 'logout' %}" style="margin-left:auto;">
+        {% csrf_token %}
+        <button type="submit" class="nav-logout">Log out</button>
+      </form>
+    </div>
+
   </div>
-{% else %}
-  <p>No posts yet.</p>
-{% endif %}
+</div>
 
-<hr>
+<div class="panel">
+  <div class="panel-header">[ My Posts ]</div>
+  <div class="panel-body" style="padding:6px;">
+    {% if posts %}
+      <div class="user-posts">
+        {% for post in posts %}
+          <a href="{% url 'posts:post_detail' post.id %}" class="post-link">
+            <div class="user-post">
+              {% if post.thumbnail_url %}
+                <div class="user-post-thumbnail-container">
+                  <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}">
+                  <div class="user-post-thumbnail-overlay"></div>
+                </div>
+              {% elif post.images %}
+                <div class="user-post-thumbnail-container">
+                  <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
+                  <div class="user-post-thumbnail-overlay"></div>
+                </div>
+              {% elif post.videos %}
+                <div class="user-post-thumbnail-container">
+                  <video muted preload="metadata">
+                    <source src="{{ post.videos.0.file.url }}" type="video/mp4">
+                  </video>
+                  <div class="user-post-thumbnail-overlay"></div>
+                </div>
+              {% endif %}
+              <h3 class="user-post-title">{{ post.title }}</h3>
+              <p class="user-post-description">{{ post.description }}</p>
+              <small class="user-post-date">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        // No posts yet. <a href="{% url 'posts:post_create' %}">Create one?</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
 
-<form method="post" action="{% url 'logout' %}">
-    {% csrf_token %}
-    <button type="submit">Log out</button>
-</form>
 {% endblock %}

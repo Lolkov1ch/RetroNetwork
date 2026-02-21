@@ -1,40 +1,56 @@
 {% extends "base.html" %}
-{% load static %}
 {% block title %}RetroNetwork | Edit Post{% endblock %}
+
 {% block content %}
-<h2>Edit Post</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.title.label_tag }}<br>
-    {{ form.title }}<br><br>
-    {{ form.description.label_tag }}<br>
-    {{ form.description }}<br><br>
-    {% if media_files %}
-        <h3>Current Media</h3>
-        <div class="task-images">
+<div class="panel" style="max-width:680px;margin:0 auto;">
+  <div class="panel-header">[ Edit Post ]</div>
+  <div class="panel-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="form-field">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+      </div>
+
+      <div class="form-field">
+        {{ form.description.label_tag }}
+        {{ form.description }}
+      </div>
+
+      {% if media_files %}
+        <div class="form-field">
+          <label>Current Media</label>
+          <div class="media-thumbs">
             {% for m in media_files %}
-                <div style="display: inline-block; margin: 5px; position: relative;">
-                    {% with file_ext=m.file.url|lower %}
-                        {% if '.mp4' in file_ext or '.webm' in file_ext or '.ogg' in file_ext or '.avi' in file_ext or '.mov' in file_ext %}
-                            <video src="{{ m.file.url }}" controls style="max-width:100px; max-height:100px;"></video>
-                        {% else %}
-                            <img src="{{ m.file.url }}" style="max-width:150px; max-height:150px;">
-                        {% endif %}
-                    {% endwith %}
-                    <br>
-                    <label>
-                        <input type="checkbox" name="delete_images" value="{{ m.id }}">
-                        Delete
-                    </label>
-                </div>
+              <div class="media-thumb">
+                {% with ext=m.file.url|lower %}
+                  {% if '.mp4' in ext or '.webm' in ext or '.avi' in ext or '.mov' in ext %}
+                    <video src="{{ m.file.url }}" controls></video>
+                  {% else %}
+                    <img src="{{ m.file.url }}" alt="media">
+                  {% endif %}
+                {% endwith %}
+                <label class="del-check">
+                  <input type="checkbox" name="delete_images" value="{{ m.id }}"> Delete
+                </label>
+              </div>
             {% endfor %}
+          </div>
         </div>
-        <br>
-    {% endif %}
-    <label>Add new media (images/videos):</label><br>
-    <input type="file" name="images" multiple accept="image/*,video/*"><br><br>
-    <button type="submit">Save</button>
-    <a href="{% url 'posts:post_delete' object.pk %}">Delete Post</a>
-    <a href="{% url 'posts:post_list' %}">Cancel</a>
-</form>
+      {% endif %}
+
+      <div class="form-field">
+        <label>Add new media (images / videos)</label>
+        <input type="file" name="images" multiple accept="image/*,video/*">
+      </div>
+
+      <div class="actions">
+        <button type="submit">Save</button>
+        <a href="{% url 'posts:post_delete' object.pk %}" class="btn btn-danger">Delete Post</a>
+        <a href="{% url 'posts:post_list' %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

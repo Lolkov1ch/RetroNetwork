@@ -3,45 +3,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}RetroNetwork{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
 <body>
-<nav>
-  <div class="nav-auth">
-    {% if user.is_authenticated %}
-      <span>Hello, @{{ user.handle }}</span>
-      <a href="{% url 'users:profile' %}">Profile</a>
-      <form method="post" action="{% url 'users:logout' %}">
-        {% csrf_token %}
-        <button type="submit"Log out</button>
-      </form>
-    {% else %}
-      <a href="{% url 'users:login' %}">Sign in</a>
-      <a href="{% url 'users:register' %}">Register</a>
-    {% endif %}
+
+<div class="site-header">
+  <div class="site-header-inner">
+
+    <a href="{% url 'posts:post_list' %}" class="site-logo">RetroNetwork</a>
+
+    <form class="nav-search" method="get" action="{% url 'posts:post_search' %}">
+      <input type="search" name="q" placeholder="Search posts..." value="{{ request.GET.q }}" autocomplete="off">
+      <button type="submit">▶</button>
+    </form>
+
+    <div class="nav-auth">
+      {% if user.is_authenticated %}
+        <span class="nav-hello">@{{ user.handle }}<span class="online-dot"></span></span>
+        <a href="{% url 'users:profile' %}" class="nav-link">Profile</a>
+        <form method="post" action="{% url 'users:logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="nav-logout">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'users:login' %}" class="nav-link">Sign in</a>
+        <a href="{% url 'users:register' %}" class="nav-link nav-register">Register</a>
+      {% endif %}
+    </div>
+
   </div>
 
-  <div>
-    <a href="{% url 'users:user_search' %}">User Search</a>
-
-    <div>
-      <label for="post-search">Post Search</label>
-      <form method="get" action="{% url 'posts:post_search' %}">
-        <input type="search" id="post-search" name="q" placeholder="Search posts..." value="{{ request.GET.q }}" autocomplete="off">
-        <button type="submit">Search</button>
-      </form>
+  <div class="site-subnav">
+    <div class="site-subnav-inner">
+      <a href="{% url 'posts:post_list' %}" class="subnav-link">Main</a>
+      <a href="{% url 'users:user_search' %}" class="subnav-link">Users</a>
+      <a href="{% url 'posts:post_search' %}" class="subnav-link">Posts</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'posts:post_create' %}" class="subnav-link subnav-create">+ New Post</a>
+        <a href="{% url 'users:profile' %}" class="subnav-link">My Page</a>
+      {% endif %}
     </div>
   </div>
-
-  <div class="nav-links">
-    <a href="{% url 'posts:post_list' %}">Main Page</a>
-    {% if user.is_authenticated %}
-      <a href="{% url 'posts:post_create' %}">Create Post</a>
-    {% endif %}
-  </div>
-</nav>
-<div class="container">
-  {% block content %}{% endblock %}
 </div>
+
+<div class="page-root">
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<div class="site-footer">
+  RetroNetwork &copy; 2026 &nbsp;&mdash;&nbsp;
+  <a href="{% url 'posts:post_list' %}">Main</a> &nbsp;|&nbsp;
+  <a href="{% url 'users:user_search' %}">Users</a> &nbsp;|&nbsp;
+  <a href="{% url 'posts:post_search' %}">Search</a>
+</div>
+
 </body>
 </html>
