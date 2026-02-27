@@ -1,0 +1,1230 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'css/messenger.css' %}">
+<style>
+  body { margin: 0; }
+  .main-content { padding: 0; }
+
+  .messenger-loading-indicator {
+    text-align: center;
+    padding: 12px;
+    color: #999;
+    font-size: 12px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messenger-page-wrapper" id="messengerRoot">
+  <aside class="messenger-conversations">
+    <div class="messenger-header">
+      <h2>Chats</h2>
+    </div>
+
+    <div class="messenger-search-box">
+      <input type="text" id="searchInput" placeholder="Search conversations or users...">
+      <div class="messenger-search-results hidden" id="searchResults"></div>
+    </div>
+
+    <div class="messenger-list-container" id="conversationsList">
+      <div class="messenger-loading">
+        <span>Loading conversations</span>
+        <div class="messenger-loading-dots">
+          <span class="messenger-loading-dot"></span>
+          <span class="messenger-loading-dot"></span>
+          <span class="messenger-loading-dot"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="messenger-chat">
+    <header class="messenger-chat-header hidden" id="chatHeader">
+      <div class="messenger-chat-header-info">
+        <img id="chatAvatar" class="messenger-chat-avatar" src="" alt="">
+        <div>
+          <div class="messenger-chat-name" id="chatName">Chat</div>
+          <div class="messenger-chat-status" id="chatStatus">Offline</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="messenger-messages" id="messagesList">
+      <div class="messenger-no-selection">
+        <div class="messenger-no-selection-icon">💬</div>
+        <div class="messenger-no-selection-text">Select a conversation to start chatting</div>
+      </div>
+    </main>
+
+    <div class="messenger-upload hidden" id="uploadBar">
+      <div class="messenger-upload-row">
+        <div class="messenger-upload-title" id="uploadTitle">Uploading…</div>
+        <div class="messenger-upload-percent" id="uploadPct">0%</div>
+      </div>
+      <div class="messenger-upload-track">
+        <div class="messenger-upload-fill" id="uploadFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <footer class="messenger-input-area hidden" id="inputArea">
+      <div class="messenger-input-wrapper">
+        <button class="messenger-input-btn" id="attachBtn" title="Attach file">📎</button>
+        <input type="file" id="fileInput" accept="image/*,video/*,audio/*,.pdf,.doc,.docx">
+        <button class="messenger-input-btn" id="emojiBtn" title="Emoji">😊</button>
+        <textarea class="messenger-textarea" id="messageInput" placeholder="Aa"></textarea>
+        <button class="messenger-send-btn" id="sendBtn">Send</button>
+      </div>
+      <button class="messenger-input-btn" id="voiceBtn" title="Send voice message">🎤</button>
+    </footer>
+  </section>
+
+  <div class="emoji-picker-popup hidden" id="emojiPicker">
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+</div>
+
+<div class="image-modal" id="imageModal">
+  <button class="image-modal-close" id="closeImageModal">&times;</button>
+  <img class="image-modal-content" id="modalImage" src="" alt="">
+</div>
+
+<input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+<input type="hidden" id="userData" data-user="{{ user_data|escape }}">
+
+<script>
+(() => {
+  const CONFIG = {
+    api_base: '/api/messages',
+    ws_protocol: window.location.protocol === 'https:' ? 'wss:' : 'ws:',
+    ws_host: window.location.host,
+    current_user_id: null,
+    current_user_username: '',
+    current_user_avatar: '/static/images/default-avatar.png',
+    current_user_status: 'online',
+  };
+
+  function initConfig() {
+    try {
+      const userDataEl = document.getElementById('userData');
+      if (userDataEl) {
+        const userData = JSON.parse(userDataEl.getAttribute('data-user'));
+        CONFIG.current_user_id = userData.id;
+        CONFIG.current_user_username = userData.username;
+        CONFIG.current_user_avatar = userData.avatar || '/static/images/default-avatar.png';
+      }
+    } catch (e) {
+      console.error('Failed to initialize CONFIG:', e);
+    }
+  }
+
+  function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  function headersJson() {
+    return {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken'),
+    };
+  }
+  function headersCsrf() {
+    return {
+      'X-CSRFToken': getCookie('csrftoken'),
+    };
+  }
+
+  const EMOJIS = [
+    '😀','😂','😍','😘','😭','😡',
+    '👍','👎','❤️','💔','🔥','⭐',
+    '🎉','🎂','🎁','🌹','🎊','✨',
+    '😴','🤔','😎','😇','🤗','👏',
+    '🙌','💪','🤝','🙏','💯','🎵',
+    '🎶','🎤','🎧','📱','💻',
+  ];
+
+  let currentConversation = null;
+  let conversations = [];
+  let messages = [];
+  let ws = null;
+
+  let currentOffset = 0;
+  const pageSize = 30;
+  let totalMessages = 0;
+  let isLoadingMore = false;
+  let hasMoreMessages = true;
+
+  let notificationQueue = [];
+
+  const el = {
+    conversationsList: document.getElementById('conversationsList'),
+    searchInput: document.getElementById('searchInput'),
+    searchResults: document.getElementById('searchResults'),
+    messengerStatusSelect: document.getElementById('messengerStatusSelect'),
+
+    chatHeader: document.getElementById('chatHeader'),
+    chatName: document.getElementById('chatName'),
+    chatAvatar: document.getElementById('chatAvatar'),
+    chatStatus: document.getElementById('chatStatus'),
+
+    messagesList: document.getElementById('messagesList'),
+
+    inputArea: document.getElementById('inputArea'),
+    messageInput: document.getElementById('messageInput'),
+    sendBtn: document.getElementById('sendBtn'),
+    attachBtn: document.getElementById('attachBtn'),
+    fileInput: document.getElementById('fileInput'),
+    emojiBtn: document.getElementById('emojiBtn'),
+    voiceBtn: document.getElementById('voiceBtn'),
+
+    emojiPicker: document.getElementById('emojiPicker'),
+    emojiGrid: document.getElementById('emojiGrid'),
+
+    imageModal: document.getElementById('imageModal'),
+    modalImage: document.getElementById('modalImage'),
+    closeImageModal: document.getElementById('closeImageModal'),
+
+    csrf: document.getElementById('csrfToken'),
+
+    uploadBar: document.getElementById('uploadBar'),
+    uploadTitle: document.getElementById('uploadTitle'),
+    uploadPct: document.getElementById('uploadPct'),
+    uploadFill: document.getElementById('uploadFill'),
+
+    notificationsContainer: document.getElementById('notificationsContainer'),
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initConfig();
+    initStatusSelector();
+    initEmojiPicker();
+    bindEvents();
+    loadConversations();
+
+    setInterval(() => {
+      if (conversations.length > 0) loadConversations();
+    }, 30000);
+  });
+
+  function initStatusSelector() {
+    if (el.messengerStatusSelect) {
+      const headerStatusDot = document.querySelector('.nav-auth .status-dot');
+      if (headerStatusDot) {
+        const statusClass = headerStatusDot.className;
+        const match = statusClass.match(/status-(\w+)/);
+        if (match) el.messengerStatusSelect.value = match[1];
+      }
+    }
+  }
+
+  function bindEvents() {
+    if (el.messengerStatusSelect) {
+      el.messengerStatusSelect.addEventListener('change', (e) => {
+        const newStatus = e.target.value;
+        if (typeof window.changeUserStatus === 'function') {
+          window.changeUserStatus(newStatus);
+        }
+      });
+    }
+
+    el.searchInput.addEventListener('input', () => {
+      const query = el.searchInput.value;
+      renderConversations(query);
+      if (query.length >= 2) searchUsers(query);
+      else el.searchResults.classList.add('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.messenger-search-box')) el.searchResults.classList.add('hidden');
+    });
+
+    el.conversationsList.addEventListener('click', (e) => {
+      const item = e.target.closest('.conversation-item');
+      if (!item) return;
+      const id = Number(item.dataset.conversationId);
+      if (!Number.isFinite(id)) return;
+      selectConversation(id);
+    });
+
+    el.emojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.emojiPicker.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (el.emojiPicker.classList.contains('hidden')) return;
+      if (el.emojiPicker.contains(e.target) || e.target === el.emojiBtn) return;
+      el.emojiPicker.classList.add('hidden');
+    });
+
+    el.attachBtn.addEventListener('click', () => el.fileInput.click());
+    el.fileInput.addEventListener('change', handleFileAttachment);
+
+    el.sendBtn.addEventListener('click', sendMessage);
+    el.messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    el.messagesList.addEventListener('scroll', () => {
+      if (!currentConversation) return;
+      if (isNearBottom(el.messagesList, 20)) {
+        if (typeof window.markConversationRead === 'function') {
+          window.markConversationRead(currentConversation.id);
+        }
+      }
+    });
+
+    el.closeImageModal.addEventListener('click', () => el.imageModal.classList.remove('active'));
+    el.imageModal.addEventListener('click', (e) => {
+      if (e.target === el.imageModal) el.imageModal.classList.remove('active');
+    });
+
+    el.voiceBtn.addEventListener('click', startVoiceRecording);
+
+    el.messagesList.addEventListener('scroll', () => {
+      if (!currentConversation) return;
+      if (isLoadingMore || !hasMoreMessages) return;
+      
+      if (el.messagesList.scrollTop <= 100) {
+        loadMoreMessages();
+      }
+      
+      if (isNearBottom(el.messagesList, 20)) {
+        if (typeof window.markConversationRead === 'function') {
+          window.markConversationRead(currentConversation.id);
+        }
+      }
+    });
+  }
+
+  function initEmojiPicker() {
+    el.emojiGrid.innerHTML = '';
+    EMOJIS.forEach(emoji => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'emoji-item';
+      b.textContent = emoji;
+      b.addEventListener('click', () => {
+        el.messageInput.value += emoji;
+        el.messageInput.focus();
+        el.emojiPicker.classList.add('hidden');
+      });
+      el.emojiGrid.appendChild(b);
+    });
+  }
+
+  async function loadConversations() {
+    try {
+      const r = await fetch(`${CONFIG.api_base}/conversations/`, {
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Failed to load conversations');
+      const data = await r.json();
+      conversations = Array.isArray(data) ? data : (data.results || []);
+
+      if (!window.userStatuses) window.userStatuses = {};
+      conversations.forEach(conv => {
+        if (conv.other_user_id && conv.other_user_status) {
+          window.userStatuses[conv.other_user_id] = conv.other_user_status;
+        }
+      });
+
+      const parseTs = (d) => {
+        if (!d) return 0;
+        const t = Date.parse(d);
+        return Number.isFinite(t) ? t : 0;
+      };
+      conversations.sort((a,b) => parseTs(b.last_message_time) - parseTs(a.last_message_time));
+
+      renderConversations(el.searchInput.value || '');
+    } catch (e) {
+      console.error(e);
+      conversations = [];
+      renderConversations('');
+    }
+  }
+
+  function renderConversations(filterText = '') {
+    const q = String(filterText || '').toLowerCase();
+
+    const filtered = q
+      ? conversations.filter(c => String(c.name || '').toLowerCase().includes(q))
+      : conversations;
+
+    if (!filtered.length) {
+      el.conversationsList.innerHTML = '<div class="empty-message">No conversations yet</div>';
+      return;
+    }
+
+    el.conversationsList.innerHTML = filtered.map(conv => {
+      const otherUserId = conv.other_user_id;
+      const userStatus = window.userStatuses?.[otherUserId] || conv.other_user_status || 'offline';
+
+      return `
+        <div class="conversation-item ${conv.id === currentConversation?.id ? 'active' : ''}"
+             data-conversation-id="${conv.id}">
+          <div class="conversation-avatar-wrapper">
+            <img class="conversation-avatar" src="${conv.other_user_avatar || CONFIG.current_user_avatar}" alt="">
+            <span class="conversation-status-dot status-${userStatus}" data-user-id="${otherUserId}" title="${getStatusText(userStatus)}"></span>
+          </div>
+          <div class="conversation-info">
+            <div class="conversation-name">${escapeHtml(conv.name || 'Chat')}</div>
+            <div class="conversation-preview">${escapeHtml(conv.last_message_preview || 'No messages')}</div>
+          </div>
+          <div class="conversation-time">${formatTime(conv.last_message_time)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function searchUsers(query) {
+    try {
+      const r = await fetch(`${CONFIG.api_base}/conversations/search_users/?q=${encodeURIComponent(query)}`, {
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Search failed');
+
+      const users = await r.json();
+      if (!users || users.length === 0) {
+        el.searchResults.innerHTML = '<div class="search-result-empty">No users found</div>';
+      } else {
+        el.searchResults.innerHTML = `
+          <div class="search-results-header">Users</div>
+          ${users.map(user => `
+            <div class="search-result-item" data-user-id="${user.id}" data-username="${user.username}">
+              <img class="search-result-avatar" src="${user.avatar || CONFIG.current_user_avatar}" alt="">
+              <div class="search-result-info">
+                <div class="search-result-name">${escapeHtml(user.display_name || user.username)}</div>
+                <div class="search-result-handle">@${escapeHtml(user.username)}</div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+      el.searchResults.classList.remove('hidden');
+
+      el.searchResults.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', async () => {
+          const userId = Number(item.dataset.userId);
+          el.searchInput.value = '';
+          el.searchResults.classList.add('hidden');
+
+          const r = await fetch(`${CONFIG.api_base}/conversations/create_or_get/`, {
+            method: 'POST',
+            headers: headersJson(),
+            credentials: 'include',
+            body: JSON.stringify({ user_id: userId }),
+          });
+          if (r.ok) {
+            const conv = await r.json();
+            await loadConversations();
+            selectConversation(conv.id);
+          } else {
+            alert('Failed to start conversation');
+          }
+        });
+      });
+    } catch (e) {
+      console.error(e);
+      el.searchResults.innerHTML = '<div class="search-result-error">Search error</div>';
+    }
+  }
+
+  async function selectConversation(conversationId) {
+    const conv = conversations.find(c => c.id === conversationId);
+    if (!conv) return;
+
+    currentConversation = conv;
+    currentOffset = 0;
+    totalMessages = 0;
+    hasMoreMessages = true;
+    isLoadingMore = false;
+
+    el.chatHeader.classList.remove('hidden');
+    el.inputArea.classList.remove('hidden');
+
+    el.chatName.textContent = conv.name || 'Chat';
+    el.chatAvatar.src = conv.other_user_avatar || CONFIG.current_user_avatar;
+
+    const userStatus = conv.other_user_status || window.userStatuses?.[conv.other_user_id] || 'offline';
+    el.chatStatus.textContent = getStatusText(userStatus);
+    el.chatStatus.dataset.userId = conv.other_user_id;
+    el.chatStatus.className = 'messenger-chat-status status-' + userStatus;
+
+    document.querySelectorAll('.conversation-item').forEach(n => n.classList.remove('active'));
+    const active = el.conversationsList.querySelector(`[data-conversation-id="${conversationId}"]`);
+    if (active) active.classList.add('active');
+
+    await loadMessages(conversationId);
+    connectWebSocket(conversationId);
+  }
+
+  async function loadMessages(conversationId) {
+    try {
+      currentOffset = 0;
+      totalMessages = 0;
+      hasMoreMessages = true;
+      messages = [];
+
+      const url = `${CONFIG.api_base}/conversations/${conversationId}/messages/?offset=0&limit=${pageSize}`;
+      const r = await fetch(url, {
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Failed to load messages');
+      const data = await r.json();
+    
+      if (data.results !== undefined) {
+        messages = Array.isArray(data.results) ? data.results : [];
+        totalMessages = data.count || 0;
+      } else if (Array.isArray(data)) {
+        messages = data;
+        totalMessages = data.length;
+      } else {
+        messages = [];
+        totalMessages = 0;
+      }
+      
+      currentOffset = messages.length;
+      hasMoreMessages = currentOffset < totalMessages;
+      
+      renderMessages({ keepScroll: false });
+    } catch (e) {
+      console.error(e);
+      messages = [];
+      totalMessages = 0;
+      renderMessages({ keepScroll: false });
+    }
+  }
+
+  async function loadMoreMessages() {
+    if (isLoadingMore || !hasMoreMessages || !currentConversation) return;
+    isLoadingMore = true;
+
+    try {
+      const url = `${CONFIG.api_base}/conversations/${currentConversation.id}/messages/?offset=${currentOffset}&limit=${pageSize}`;
+      const r = await fetch(url, {
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Failed to load more messages');
+      const data = await r.json();
+      
+      const newMessages = Array.isArray(data.results) ? data.results : [];
+      
+      if (newMessages.length > 0) {
+        messages.unshift(...newMessages);
+        currentOffset += newMessages.length;
+        
+        const prevHeight = el.messagesList.scrollHeight;
+        renderMessages({ keepScroll: true });
+        const newHeight = el.messagesList.scrollHeight;
+        el.messagesList.scrollTop += (newHeight - prevHeight);
+      }
+
+      totalMessages = data.count || totalMessages;
+      hasMoreMessages = currentOffset < totalMessages;
+    } catch (e) {
+      console.error('Error loading more messages:', e);
+    } finally {
+      isLoadingMore = false;
+    }
+  }
+
+  async function markConversationRead(conversationId) {
+    if (!conversationId) return;
+    try {
+      const r = await fetch(`${CONFIG.api_base}/conversations/${conversationId}/mark_as_read/`, {
+        method: 'POST',
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+      if (!r.ok) return;
+
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) conv.unread_count = 0;
+
+      await loadConversations();
+    } catch (e) {
+      console.error('markConversationRead error', e);
+    }
+  }
+  window.markConversationRead = markConversationRead; 
+
+  function normalizeSenderId(msg) {
+    const senderObj = (msg && typeof msg.sender === 'object') ? msg.sender : null;
+    return senderObj?.id ?? msg.sender_id ?? msg.sender ?? null;
+  }
+
+  function renderMessages({ keepScroll = true } = {}) {
+    const container = el.messagesList;
+
+    if (!messages.length) {
+      container.innerHTML = '<div class="empty-message">No messages yet. Start the conversation!</div>';
+      return;
+    }
+
+    const wasNearBottom = keepScroll ? isNearBottom(container, 40) : true;
+    const myId = Number(CONFIG.current_user_id);
+
+    container.innerHTML = messages.map(msg => {
+      const senderObj = (msg && typeof msg.sender === 'object') ? msg.sender : null;
+      const senderId = normalizeSenderId(msg);
+      const isOwn = Number(senderId) === myId;
+
+      const created = msg.created_at ? new Date(msg.created_at) : new Date();
+      const timeStr = created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      let body = '';
+      if (msg.file) {
+        if (msg.message_type === 'image') {
+          body = `
+            <img class="message-image" src="${msg.file}" alt=""
+                 data-action="open-image" data-src="${msg.file}">
+          `;
+        } else if (msg.message_type === 'video') {
+          body = buildVideoPlayer(msg.file);
+        } else if (msg.message_type === 'voice' || msg.message_type === 'audio') {
+          body = buildAudioPlayer(msg.file);
+        } else {
+          const fileName = String(msg.file).split('/').pop();
+          body = `<a href="${msg.file}" class="message-file" download><span class="message-file-icon">📄</span>${escapeHtml(fileName)}</a>`;
+        }
+      } else {
+        body = `<div class="message-bubble">${escapeHtml(msg.content || '')}</div>`;
+      }
+
+      const avatarUrl = senderObj?.avatar || senderObj?.profile?.avatar || CONFIG.current_user_avatar;
+
+      return `
+        <div class="message-group ${isOwn ? 'own' : ''}">
+          ${!isOwn ? `<img class="message-avatar" src="${avatarUrl}" alt="">` : ''}
+          <div class="message-content">
+            ${body}
+            <div class="message-timestamp-wrapper ${isOwn ? 'own' : ''}">
+              <span class="message-timestamp">${timeStr}</span>
+              ${msg.is_edited ? '<span class="message-edited">(edited)</span>' : ''}
+            </div>
+            ${isOwn ? `<div class="message-actions">
+              <button class="message-action-btn" data-action="edit" data-msg-id="${msg.id}" title="Edit">✏️</button>
+              <button class="message-action-btn" data-action="delete" data-msg-id="${msg.id}" title="Delete">🗑️</button>
+            </div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('[data-action="open-image"]').forEach(img => {
+      img.addEventListener('click', () => showImage(img.dataset.src));
+    });
+
+    container.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const msgId = Number(btn.dataset.msgId);
+        const msg = messages.find(m => Number(m.id) === msgId);
+        if (msg) editMessage(msg);
+      });
+    });
+
+    container.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const msgId = Number(btn.dataset.msgId);
+        if (confirm('Delete this message?')) deleteMessage(msgId);
+      });
+    });
+
+    initMediaPlayers(container);
+    if (wasNearBottom) scrollToBottom(container);
+  }
+
+  async function editMessage(msg) {
+    if (!msg || msg.message_type !== 'text') {
+      alert('Only text messages can be edited');
+      return;
+    }
+
+    const newContent = prompt('Edit message:', msg.content);
+    if (!newContent || newContent === msg.content) return;
+
+    el.sendBtn.disabled = true;
+    const old = el.sendBtn.textContent;
+    el.sendBtn.textContent = 'Editing...';
+
+    try {
+      const r = await fetch(`${CONFIG.api_base}/messages/${msg.id}/edit/`, {
+        method: 'PATCH',
+        headers: headersJson(),
+        credentials: 'include',
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to edit message');
+      }
+
+      const updated = await r.json();
+      const idx = messages.findIndex(m => Number(m.id) === Number(updated.id));
+      if (idx !== -1) {
+        messages[idx] = updated;
+        renderMessages({ keepScroll: true });
+      }
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'message_edited',
+          message: updated
+        }));
+      }
+
+      loadConversations();
+    } catch (e) {
+      console.error(e);
+      alert('Error: ' + e.message);
+    } finally {
+      el.sendBtn.disabled = false;
+      el.sendBtn.textContent = old;
+    }
+  }
+
+  async function deleteMessage(msgId) {
+    el.sendBtn.disabled = true;
+    const old = el.sendBtn.textContent;
+    el.sendBtn.textContent = 'Deleting...';
+
+    try {
+      const r = await fetch(`${CONFIG.api_base}/messages/${msgId}/`, {
+        method: 'DELETE',
+        headers: headersCsrf(),
+        credentials: 'include',
+      });
+
+      if (!r.ok) throw new Error('Failed to delete message');
+
+      messages = messages.filter(m => Number(m.id) !== Number(msgId));
+      renderMessages({ keepScroll: true });
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'message_deleted',
+          message_id: msgId
+        }));
+      }
+
+      loadConversations();
+    } catch (e) {
+      console.error(e);
+      alert('Error: ' + e.message);
+    } finally {
+      el.sendBtn.disabled = false;
+      el.sendBtn.textContent = old;
+    }
+  }
+
+  async function sendMessage() {
+    const content = el.messageInput.value.trim();
+    if (!content) return;
+    if (!currentConversation) return alert('Select a conversation first');
+
+    el.messageInput.value = '';
+
+    el.sendBtn.disabled = true;
+    const old = el.sendBtn.textContent;
+    el.sendBtn.textContent = 'Sending...';
+
+    try {
+      const r = await fetch(`${CONFIG.api_base}/messages/`, {
+        method: 'POST',
+        headers: headersJson(),
+        credentials: 'include',
+        body: JSON.stringify({
+          conversation: currentConversation.id,
+          content,
+          message_type: 'text',
+        }),
+      });
+
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send');
+      }
+
+      const msg = await r.json();
+
+      if (!messages.some(m => Number(m.id) === Number(msg.id))) {
+        messages.push(msg);
+        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        renderMessages({ keepScroll: true });
+      }
+
+      await loadConversations();
+
+    } catch (e) {
+      console.error(e);
+      el.messageInput.value = content;
+      alert('Error: ' + e.message);
+    } finally {
+      el.sendBtn.disabled = false;
+      el.sendBtn.textContent = old;
+    }
+  }
+
+  async function handleFileAttachment(e) {
+    const file = e.target.files?.[0];
+    if (!file || !currentConversation) return;
+
+    el.fileInput.value = '';
+
+    const formData = new FormData();
+    formData.append('conversation', currentConversation.id);
+    formData.append('file', file);
+
+    const mt =
+      file.type.startsWith('image') ? 'image' :
+      file.type.startsWith('video') ? 'video' :
+      file.type.startsWith('audio') ? 'audio' : 'file';
+
+    formData.append('message_type', mt);
+
+    showUpload(`Uploading: ${file.name}`, 0);
+
+    try {
+      const msg = await xhrUpload(`${CONFIG.api_base}/messages/`, formData, (pct) => {
+        showUpload(`Uploading: ${file.name}`, pct);
+      });
+
+      hideUpload();
+
+      if (msg && msg.id && !messages.some(m => Number(m.id) === Number(msg.id))) {
+        messages.push(msg);
+        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        renderMessages({ keepScroll: true });
+      }
+
+      await loadConversations();
+    } catch (e2) {
+      console.error(e2);
+      hideUpload();
+      alert('Upload failed: ' + e2.message);
+    }
+  }
+
+  function xhrUpload(url, formData, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+      xhr.upload.onprogress = (evt) => {
+        if (!evt.lengthComputable) return;
+        const pct = Math.round((evt.loaded / evt.total) * 100);
+        onProgress?.(pct);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch { resolve({}); }
+        } else {
+          let msg = 'Upload error';
+          try {
+            const j = JSON.parse(xhr.responseText);
+            msg = j.detail || msg;
+          } catch {}
+          reject(new Error(msg));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
+  }
+
+  function showUpload(title, pct) {
+    el.uploadBar.classList.remove('hidden');
+    el.uploadTitle.textContent = title;
+    el.uploadPct.textContent = `${pct}%`;
+    el.uploadFill.style.width = `${pct}%`;
+  }
+  function hideUpload() {
+    el.uploadBar.classList.add('hidden');
+    el.uploadFill.style.width = '0%';
+    el.uploadPct.textContent = '0%';
+  }
+
+  let mediaRecorder = null;
+  let recordingChunks = [];
+  let isRecording = false;
+
+  async function startVoiceRecording() {
+    if (!currentConversation) {
+      alert('Select a conversation first');
+      return;
+    }
+
+    if (isRecording) {
+      stopVoiceRecording();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      recordingChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordingChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(recordingChunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await uploadVoiceMessage(audioBlob);
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      el.voiceBtn.textContent = '⏹️';
+      el.voiceBtn.style.background = '#ff4444';
+    } catch (e) {
+      console.error('Error accessing microphone:', e);
+      alert('Unable to access microphone. Please check permissions.');
+    }
+  }
+
+  function stopVoiceRecording() {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      isRecording = false;
+      el.voiceBtn.textContent = '🎤';
+      el.voiceBtn.style.background = '';
+    }
+  }
+
+  async function uploadVoiceMessage(audioBlob) {
+    const formData = new FormData();
+    formData.append('conversation', currentConversation.id);
+    formData.append('file', audioBlob, 'voice.webm');
+    formData.append('message_type', 'voice');
+
+    showUpload('Uploading voice message...', 0);
+
+    try {
+      const msg = await xhrUpload(`${CONFIG.api_base}/messages/`, formData, (pct) => {
+        showUpload('Uploading voice message...', pct);
+      });
+
+      hideUpload();
+
+      if (msg && msg.id && !messages.some(m => Number(m.id) === Number(msg.id))) {
+        messages.push(msg);
+        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        renderMessages({ keepScroll: true });
+      }
+
+      loadConversations();
+    } catch (e2) {
+      console.error(e2);
+      hideUpload();
+      alert('Voice upload failed: ' + e2.message);
+    }
+  }
+
+  function connectWebSocket(conversationId) {
+    try { if (ws) ws.close(); } catch {}
+
+    const wsUrl = `${CONFIG.ws_protocol}//${CONFIG.ws_host}/ws/chat/${conversationId}/`;
+    ws = new WebSocket(wsUrl);
+    window.ws = ws;
+
+    ws.onmessage = async (e) => {
+      let data;
+      try { data = JSON.parse(e.data); } catch { return; }
+
+      if (data.type === 'chat_message') {
+        const messageData = data.message;
+        if (!messageData) return;
+
+        const senderId = normalizeSenderId(messageData);
+
+        if (Number(senderId) === Number(CONFIG.current_user_id)) {
+          await loadConversations();
+          return;
+        }
+
+        if (!messages.some(m => Number(m.id) === Number(messageData.id))) {
+          messages.push(messageData);
+          messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+          renderMessages({ keepScroll: true });
+        }
+
+        const senderInfo = typeof messageData.sender === 'object' ? messageData.sender : null;
+        if (senderInfo && senderInfo.display_name) {
+          window.showNotification(
+            senderInfo.display_name,
+            senderInfo.avatar || senderInfo.profile?.avatar || CONFIG.current_user_avatar,
+            messageData.content || '[Media message]',
+            messageData.conversation
+          );
+        }
+
+        loadConversations();
+        return;
+      }
+
+      if (data.type === 'message_edited') {
+        if (data.message) {
+          const updated = data.message;
+          const idx = messages.findIndex(m => Number(m.id) === Number(updated.id));
+          if (idx !== -1) {
+            messages[idx] = updated;
+            renderMessages({ keepScroll: true });
+          } else {
+            if (currentConversation) await loadMessages(currentConversation.id);
+          }
+        } else if (data.message_id) {
+          if (currentConversation) await loadMessages(currentConversation.id);
+        }
+        return;
+      }
+
+      if (data.type === 'message_deleted') {
+        const messageId = data.message_id;
+        if (!messageId) return;
+        messages = messages.filter(m => Number(m.id) !== Number(messageId));
+        renderMessages({ keepScroll: true });
+        loadConversations();
+        return;
+      }
+
+      if (data.type === 'user_status_changed') {
+        const userId = data.user_id;
+        const status = data.status;
+        if (!userId) return;
+
+        if (Number(userId) === Number(CONFIG.current_user_id)) {
+          CONFIG.current_user_status = status;
+        }
+
+        conversations.forEach(conv => {
+          if (conv.other_user_id === userId) conv.other_user_status = status;
+        });
+
+        updateUserStatus(userId, status);
+        renderConversations(el.searchInput.value || '');
+
+        if (currentConversation && currentConversation.other_user_id === userId) {
+          el.chatStatus.textContent = getStatusText(status);
+          el.chatStatus.className = 'messenger-chat-status status-' + status;
+        }
+        return;
+      }
+    };
+  }
+
+  async function createNewConversation(username) {
+    try {
+      const r = await fetch(`${CONFIG.api_base}/conversations/create_or_get/`, {
+        method: 'POST',
+        headers: headersJson(),
+        credentials: 'include',
+        body: JSON.stringify({ username }),
+      });
+      if (!r.ok) throw new Error('Failed to create conversation');
+      const conv = await r.json();
+      await loadConversations();
+      selectConversation(conv.id);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to create conversation');
+    }
+  }
+
+  function buildVideoPlayer(src) {
+    const safe = String(src);
+    return `
+      <div class="vk-player" data-kind="video" data-src="${safe}">
+        <div class="vk-player-media">
+          <video class="vk-player-video" preload="metadata" playsinline src="${safe}"></video>
+          <button class="vk-player-bigplay" type="button" title="Play">▶</button>
+        </div>
+        <div class="vk-player-bar">
+          <button class="vk-player-play" type="button">▶</button>
+          <input class="vk-player-seek" type="range" min="0" max="100" value="0">
+          <span class="vk-player-time">0:00 / 0:00</span>
+          <button class="vk-player-mute" type="button">🔊</button>
+          <button class="vk-player-fullscreen" type="button">⛶</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildAudioPlayer(src) {
+    const safe = String(src);
+    return `
+      <div class="vk-player vk-player-audio" data-kind="audio" data-src="${safe}">
+        <audio class="vk-player-audio-el" preload="metadata" src="${safe}"></audio>
+        <div class="vk-player-bar">
+          <button class="vk-player-play" type="button">▶</button>
+          <input class="vk-player-seek" type="range" min="0" max="100" value="0">
+          <span class="vk-player-time">0:00 / 0:00</span>
+          <button class="vk-player-mute" type="button">🔊</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function initMediaPlayers(scopeEl) {
+    scopeEl.querySelectorAll('.vk-player').forEach(root => {
+      if (root.__inited) return;
+      root.__inited = true;
+
+      const kind = root.dataset.kind;
+      const playBtn = root.querySelector('.vk-player-play');
+      const bigPlay = root.querySelector('.vk-player-bigplay');
+      const seek = root.querySelector('.vk-player-seek');
+      const timeEl = root.querySelector('.vk-player-time');
+      const muteBtn = root.querySelector('.vk-player-mute');
+      const fullscreenBtn = root.querySelector('.vk-player-fullscreen');
+
+      const media = (kind === 'audio')
+        ? root.querySelector('audio')
+        : root.querySelector('video');
+
+      if (!media) return;
+
+      function refreshTime() {
+        const cur = media.currentTime || 0;
+        const dur = media.duration || 0;
+        timeEl.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+        if (dur > 0) seek.value = String((cur / dur) * 100);
+      }
+
+      media.addEventListener('loadedmetadata', refreshTime);
+      media.addEventListener('timeupdate', refreshTime);
+      media.addEventListener('ended', () => {
+        playBtn.textContent = '▶';
+        if (bigPlay) bigPlay.classList.remove('hidden');
+      });
+
+      const togglePlay = async () => {
+        if (media.paused) {
+          await media.play();
+          playBtn.textContent = '⏸';
+          if (bigPlay) bigPlay.classList.add('hidden');
+        } else {
+          media.pause();
+          playBtn.textContent = '▶';
+          if (bigPlay) bigPlay.classList.remove('hidden');
+        }
+      };
+
+      playBtn.addEventListener('click', togglePlay);
+      if (bigPlay) bigPlay.addEventListener('click', togglePlay);
+
+      seek.addEventListener('input', () => {
+        const dur = media.duration || 0;
+        if (dur <= 0) return;
+        media.currentTime = (Number(seek.value) / 100) * dur;
+      });
+
+      muteBtn.addEventListener('click', () => {
+        media.muted = !media.muted;
+        muteBtn.textContent = media.muted ? '🔇' : '🔊';
+      });
+
+      if (fullscreenBtn && kind === 'video') {
+        fullscreenBtn.addEventListener('click', async () => {
+          try {
+            if (!document.fullscreenElement) await root.requestFullscreen();
+            else await document.exitFullscreen();
+          } catch (err) {
+            console.error('Fullscreen error:', err);
+          }
+        });
+      }
+
+      if (kind === 'video') {
+        const mediaWrap = root.querySelector('.vk-player-media');
+        if (mediaWrap) mediaWrap.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          togglePlay();
+        });
+      }
+    });
+  }
+
+  function fmt(s) {
+    s = Math.floor(s || 0);
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2,'0')}`;
+  }
+
+  function showImage(url) {
+    el.modalImage.src = url;
+    el.imageModal.classList.add('active');
+  }
+
+  function scrollToBottom(container) {
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+  }
+
+  function isNearBottom(container, thresholdPx = 20) {
+    return (container.scrollHeight - container.scrollTop - container.clientHeight) <= thresholdPx;
+  }
+
+  function formatTime(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (msgDate.getTime() === today.getTime()) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+  }
+
+  window.renderConversations = renderConversations;
+  window.selectConversation = selectConversation;
+  window.getMessengerSearchQuery = () => el.searchInput?.value || '';
+  window.getStatusText = getStatusText;
+
+  function updateUserStatus(userId, status) {
+    if (!window.userStatuses) window.userStatuses = {};
+    window.userStatuses[userId] = status;
+  }
+
+  function getStatusText(status) {
+    const texts = {
+      'online': 'Online',
+      'dnd': 'Do Not Disturb',
+      'inactive': 'Inactive',
+      'offline': 'Offline'
+    };
+    return texts[status] || 'Offline';
+  }
+})();
+</script>
+{% endblock %}

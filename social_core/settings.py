@@ -35,23 +35,30 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI server for Channels
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
+    'rest_framework',
+    'corsheaders',
     'users.apps.UsersConfig',           
     'posts',
     'comments',
     'reactions',
     'attachments',
     'user_settings',
+    'notifications',
+    'messaging',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -60,6 +67,15 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'social_core.urls'
+
+ASGI_APPLICATION = 'social_core.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 TEMPLATES = [
     {
@@ -71,6 +87,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'users.context_processors.status_choices',
+                'users.context_processors.online_friends',
+                'notifications.context_processors.notifications_context',
             ],
         },
     },
@@ -82,12 +101,44 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+import dj_database_url
+
+# Support Docker (DATABASE_URL env var), local PostgreSQL, or SQLite fallback
+if 'DATABASE_URL' in os.environ:
+    # Docker: use DATABASE_URL environment variable
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ['DATABASE_URL'],
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    # Local development: try PostgreSQL first, fall back to SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'retronetwork',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': 'localhost',
+            'PORT': '5432',
+            'CONN_MAX_AGE': 0,  # Disable connection pooling for SQLite fallback
+        }
+    }
+    
+    # Fallback to SQLite if PostgreSQL is not available
+    try:
+        import psycopg2
+        import socket
+        socket.create_connection(('localhost', 5432), timeout=1)
+    except (ImportError, OSError, socket.timeout):
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 # Password validation
@@ -150,3 +201,29 @@ STATICFILES_DIRS = [
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+}
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# File Upload Settings
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # 25 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # 25 MB

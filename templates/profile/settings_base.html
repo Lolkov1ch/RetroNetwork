@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="settings-layout">
+
+  <div class="settings-sidebar">
+    <div class="panel">
+      <div class="panel-header">Settings</div>
+      <div class="panel-body" style="padding: 0;">
+        <a href="{% url 'user_settings:edit_profile' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'edit_profile' %}active{% endif %}">
+          ✎ Edit Profile
+        </a>
+        <a href="{% url 'user_settings:profile_customize' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'profile_customize' %}active{% endif %}">
+          🎨 Customize Look
+        </a>
+        <a href="{% url 'user_settings:change_password' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'change_password' %}active{% endif %}">
+          🔑 Change Password
+        </a>
+        <a href="{% url 'user_settings:notification_settings' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">
+          🔔 Notifications
+        </a>
+        <a href="{% url 'user_settings:privacy_settings' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'privacy_settings' %}active{% endif %}">
+          🔒 Privacy
+        </a>
+        <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border-color);">
+        <a href="{% url 'users:profile' %}" class="settings-nav-item">
+          ← Back to Profile
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-main">
+    {% block settings_content %}{% endblock %}
+  </div>
+
+</div>
+
+<style>
+.settings-layout {
+  display: flex;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.settings-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.settings-sidebar .panel {
+  position: sticky;
+  top: 60px;
+}
+
+.settings-nav-item {
+  display: block;
+  padding: 12px 16px;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.settings-nav-item:hover {
+  background: rgba(59, 89, 152, 0.06);
+  border-left-color: #3b5998;
+  color: #3b5998;
+}
+
+.settings-nav-item.active {
+  background: rgba(59, 89, 152, 0.1);
+  border-left-color: #3b5998;
+  color: #3b5998;
+  font-weight: 600;
+}
+
+.settings-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-main .panel {
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .settings-layout {
+    flex-direction: column;
+  }
+  
+  .settings-sidebar {
+    width: 100%;
+  }
+  
+  .settings-sidebar .panel {
+    position: static;
+  }
+}
+</style>
+{% endblock %}

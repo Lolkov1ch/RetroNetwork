@@ -5,7 +5,7 @@ from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model
 from django.views import View
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -26,7 +26,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     template_name = "social_network/post_create.html"
     context_object_name = "post"
-    fields = ["title", "description"]
+    fields = ["content"]
     success_url = reverse_lazy("posts:post_list")
     
     def form_valid(self, form):
@@ -48,10 +48,13 @@ class PostListView(ListView):
 
         if query:
             queryset = queryset.filter(
-                Q(title__icontains=query) | Q(description__icontains=query)
+                Q(content__icontains=query)
             )
 
-        posts = queryset.order_by('-id')
+        posts = queryset.annotate(
+            like_count=Count('likes', distinct=True),
+            comment_count=Count('comments', distinct=True)
+        ).order_by('-like_count', '-comment_count', '-views', '-id')
         
         for post in posts:
             all_media = get_post_media(post.id)
@@ -73,12 +76,18 @@ class PostDetailView(DetailView):
         post = self.get_object()
         context['media_files'] = get_post_media(post.id)
         return context
+    
+    def get_object(self, queryset=None):
+        post = super().get_object(queryset)
+        post.views += 1
+        post.save(update_fields=['views'])
+        return post
 
 class PostUpdateView(UserIsOwnerMixin, LoginRequiredMixin, UpdateView):
     model = Post
     template_name = "social_network/post_edit.html"
     context_object_name = "object"
-    fields = ["title", "description"]
+    fields = ["content"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

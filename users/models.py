@@ -16,6 +16,13 @@ def validate_handle(value):
 
 
 class User(AbstractUser):
+    STATUS_CHOICES = [
+        ('online', 'Online'),
+        ('dnd', 'Do Not Disturb'),
+        ('inactive', 'Inactive'),
+        ('offline', 'Offline'),
+    ]
+    
     email = models.EmailField(unique=True)
     display_name = models.CharField(max_length=50, blank=True, help_text="Public nickname (can contain spaces)")
     handle = models.CharField(
@@ -27,7 +34,8 @@ class User(AbstractUser):
     bio = models.TextField(blank=True, max_length=500)
     birth_date = models.DateField(null=True, blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True)
-    # last_online = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline')
+    previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='online', help_text="Status before logout")
 
     def __str__(self):
         return f"@{self.handle}" if self.handle else self.username

@@ -1,45 +1,45 @@
 {% extends 'base.html' %}
-{% block title %}{{ post.title }} - RetroNetwork{% endblock %}
+{% block title %}Post - RetroNetwork{% endblock %}
 
 {% block content %}
 
 <div class="panel">
-  <div class="panel-header">[ {{ post.title }} ]</div>
+  <div class="panel-header">[ Post ]</div>
   <div class="panel-body">
 
-    <div class="post-detail-meta">
-      <span>by <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></span>
-      <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
+    <div class="post-header">
+      <div class="post-author">
+        {{ post.author.get_display_name }} 
+        {% if post.author.handle %}<a href="{% url 'users:user_detail' post.author.handle %}" onclick="event.stopPropagation();">@{{ post.author.handle }}</a>{% else %}@unknown{% endif %}
+      </div>
+      <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
       {% if post.updated_at != post.created_at %}
-        <span class="text-dim">(edited {{ post.updated_at|date:"d.m.Y H:i" }})</span>
+        <span class="text-dim">(edited)</span>
       {% endif %}
     </div>
 
-    <div class="post-detail-body">
-      {{ post.description }}
-    </div>
+    <div class="post-text">{{ post.content }}</div>
 
     {% if media_files %}
-      <div class="media-container">
+      <div class="post-media">
         {% for media in media_files %}
           {% if media.is_image %}
-            <div class="media-item"><img src="{{ media.file.url }}" alt="Post image"></div>
+            <img src="{{ media.file.url }}" alt="Post image">
           {% elif media.is_video %}
-            <div class="media-item">
-              <video controls style="width:100%;">
-                <source src="{{ media.file.url }}" type="video/mp4">
-              </video>
-            </div>
+            <video controls style="width:100%;">
+              <source src="{{ media.file.url }}" type="video/mp4">
+            </video>
           {% endif %}
         {% endfor %}
       </div>
     {% endif %}
 
-    <div class="post-actions" style="margin-top:10px;">
+    <div class="post-actions">
       <form method="post" action="{% url 'reactions:post_like' post.pk %}" style="display:inline;">
         {% csrf_token %}
         <button type="submit">♥ Like ({{ post.likes.count }})</button>
       </form>
+      <span class="comment-count">💬 {{ post.comments.count }} Comments</span>
       {% if user.is_authenticated and user == post.author %}
         <a href="{% url 'posts:post_update' post.pk %}" class="btn">Edit</a>
         <a href="{% url 'posts:post_delete' post.pk %}" class="btn btn-danger">Delete</a>
@@ -50,42 +50,48 @@
 </div>
 
 <div class="panel">
-  <div class="panel-header">[ Comments ({{ post.comments.count }}) ]</div>
-  <div class="panel-body" style="padding:0;">
+  <div class="panel-header">[ Comments ]</div>
+  <div class="panel-body comments-section">
 
     {% if post.comments.all %}
-      {% for comment in post.comments.all %}
-        <div class="comment">
-          <div class="comment-body">{{ comment.content }}</div>
-          <div class="comment-meta">
-            <a href="{% url 'users:user_detail' comment.author.handle %}">@{{ comment.author.handle }}</a>
-            <span>{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+      <div class="comments-list">
+        {% for comment in post.comments.all %}
+          <div class="comment">
+            <div class="comment-header">
+              <div class="comment-author">
+                {{ comment.author.get_display_name }} 
+                {% if comment.author.handle %}<a href="{% url 'users:user_detail' comment.author.handle %}" onclick="event.stopPropagation();">@{{ comment.author.handle }}</a>{% else %}@unknown{% endif %}
+              </div>
+              <div class="comment-date">{{ comment.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+         
+            <div class="comment-text">{{ comment.content }}</div>
+
             <div class="comment-actions">
               <form method="post" action="{% url 'reactions:comment_like' comment.pk %}" style="display:inline;">
                 {% csrf_token %}
                 <button type="submit">♥ {{ comment.likes.count }}</button>
               </form>
               {% if user.is_authenticated and user == comment.author %}
-                <a href="{% url 'comments:comment_edit' comment.pk %}" class="btn" style="padding:2px 8px;font-size:11px;">Edit</a>
+                <a href="{% url 'comments:comment_edit' comment.pk %}" class="btn">Edit</a>
                 <form method="post" action="{% url 'comments:comment_delete' comment.pk %}" style="display:inline;" onsubmit="return confirm('Delete comment?');">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-danger" style="padding:2px 8px;font-size:11px;">Del</button>
+                  <button type="submit" class="btn btn-danger">Del</button>
                 </form>
               {% endif %}
             </div>
           </div>
-        </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
     {% else %}
       <div class="empty-state">// No comments yet.</div>
     {% endif %}
 
     {% if user.is_authenticated %}
       <div class="add-comment">
-        <div class="panel-header-gray">Add Comment</div>
-        <form method="post" action="{% url 'comments:post_add_comment' post.pk %}" style="padding:10px;">
+        <form method="post" action="{% url 'comments:post_add_comment' post.pk %}">
           {% csrf_token %}
-          <textarea name="content" required placeholder="// Share your thoughts..." rows="3" style="width:100%;"></textarea>
+          <textarea name="content" required placeholder="Share your thoughts..." rows="2" style="width:100%; padding:8px; border:1px solid var(--border-color); border-radius:3px; font-family: inherit;"></textarea>
           <button type="submit" style="margin-top:6px;">Post Comment</button>
         </form>
       </div>

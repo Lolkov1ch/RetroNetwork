@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
-from .models import NotificationSettings, PrivacySettings
+from .models import NotificationSettings, PrivacySettings, ProfileCustomization
 
 User = get_user_model()
 
@@ -37,7 +37,7 @@ class PrivacySettingsForm(forms.ModelForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['display_name', 'handle', 'bio', 'email', 'avatar', 'birth_date']
+        fields = ['display_name', 'handle', 'bio', 'email', 'avatar', 'birth_date', 'status']
         widgets = {
             'display_name': forms.TextInput(attrs={
                 'placeholder': 'Your public name (can contain spaces)',
@@ -53,9 +53,32 @@ class UserProfileForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'form-control'
             }),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
 
 
 class UserPasswordChangeForm(PasswordChangeForm):
     pass
+
+
+class ProfileCustomizationForm(forms.ModelForm):
+    class Meta:
+        model = ProfileCustomization
+        fields = ['cover_photo', 'show_bio', 'show_location', 'show_birth_date', 'show_member_since', 'wall_style']
+        widgets = {
+            'cover_photo': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'show_bio': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'show_location': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'show_birth_date': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'show_member_since': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'wall_style': forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'cover_photo': 'Profile Cover Photo',
+            'show_bio': 'Show bio on profile',
+            'show_location': 'Show location',
+            'show_birth_date': 'Show birth date',
+            'show_member_since': 'Show member since',
+            'wall_style': 'Wall display style',
+        }
 

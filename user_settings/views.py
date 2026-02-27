@@ -8,12 +8,13 @@ from django.views.generic import ListView, DetailView
 from django.views import View
 from django.db.models import Q
 from django.contrib.auth import get_user_model
-from .models import NotificationSettings, PrivacySettings, Friend, Block
+from .models import NotificationSettings, PrivacySettings, Friend, Block, ProfileCustomization
 from .forms import (
     NotificationSettingsForm, 
     PrivacySettingsForm, 
     UserProfileForm, 
-    UserPasswordChangeForm
+    UserPasswordChangeForm,
+    ProfileCustomizationForm
 )
 
 User = get_user_model()
@@ -47,6 +48,34 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_object(self):
         return self.request.user
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            from django.http import JsonResponse
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Profile updated successfully'
+            })
+        
+        return response
+
+
+class ProfileCustomizeView(LoginRequiredMixin, UpdateView):
+    model = ProfileCustomization
+    form_class = ProfileCustomizationForm
+    template_name = "profile/profile_customize.html"
+    success_url = reverse_lazy("users:profile")
+
+    def get_object(self):
+        obj, created = ProfileCustomization.objects.get_or_create(user=self.request.user)
+        return obj
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['profile_user'] = self.request.user
+        return context
 
 
 class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
@@ -154,6 +183,18 @@ class RejectFriendRequestView(LoginRequiredMixin, View):
         return redirect('users:user_detail', handle=handle)
 
 
+class RemoveFriendView(LoginRequiredMixin, View):
+    def post(self, request, handle):
+        target_user = get_object_or_404(User, handle=handle)
+        
+        Friend.objects.filter(
+            Q(requester=request.user, receiver=target_user, status="accepted") |
+            Q(requester=target_user, receiver=request.user, status="accepted")
+        ).delete()
+        
+        return redirect('users:user_detail', handle=handle)
+
+
 class BlockView(LoginRequiredMixin, View):
     def post(self, request, handle):
         target_user = get_object_or_404(User, handle=handle)
@@ -184,3 +225,39 @@ class UnblockView(LoginRequiredMixin, View):
         return redirect('users:user_detail', handle=handle)
 
 
+class RecentActivityView(LoginRequiredMixin, ListView):
+    model = User
+    template_name = "user_settings/recent_activity.html"
+    context_object_name = "activities"
+    paginate_by = 20
+
+    def get_queryset(self):
+        from posts.models import Post
+        from comments.models import Comment
+        
+        following_ids = self.request.user.following.values_list('following_id', flat=True)
+        
+        if not following_ids.exists():
+            return []
+        
+        posts = Post.objects.filter(author_id__in=following_ids).select_related('author').order_by('-created_at')[:50]
+        
+        return posts
+    
+    def get_context_data(self, **kwargs):
+        from notifications.models import Notification
+        context = super().get_context_data(**kwargs)
+        context['posts'] = context.pop('activities')
+        context['notifications'] = Notification.objects.filter(user=self.request.user).select_related('sender').order_by('-created_at')[:50]
+        context['unread_count'] = Notification.objects.filter(user=self.request.user, is_read=False).count()
+        return context
+
+
+class FriendRequestsView(LoginRequiredMixin, ListView):
+    model = Friend
+    template_name = "user_settings/friend_requests.html"
+    context_object_name = "friend_requests"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Friend.objects.filter(receiver=self.request.user, status='pending').select_related('requester').order_by('-created_at')

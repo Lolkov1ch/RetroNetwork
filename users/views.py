@@ -8,10 +8,10 @@ from django.views.generic.edit import UpdateView
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.views import PasswordChangeView
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from .models import User, Follow
 from .forms import RegisterForm
-from user_settings.models import PrivacySettings, Friend, Block
+from user_settings.models import PrivacySettings, Friend, Block, ProfileCustomization
 from posts.models import Post
 from posts.utils import is_image, is_video, get_post_media
 from posts.thumbnail_utils import generate_post_thumbnail
@@ -56,9 +56,15 @@ class ProfileView(LoginRequiredMixin, View):
             else:
                 post.thumbnail_url = raw_thumbnail
 
+        try:
+            profile_custom = request.user.profile_customization
+        except ProfileCustomization.DoesNotExist:
+            profile_custom = None
+
         context = {
             "user": request.user,
-            "posts": posts
+            "posts": posts,
+            "profile_custom": profile_custom,
         }
         return render(request, "profile/profile.html", context)
 
@@ -107,6 +113,11 @@ class UserDetailView(DetailView):
             privacy_settings = profile_user.privacy_settings
         except PrivacySettings.DoesNotExist:
             privacy_settings = PrivacySettings.objects.create(user=profile_user, profile_visibility="all")
+        
+        try:
+            profile_custom = profile_user.profile_customization
+        except ProfileCustomization.DoesNotExist:
+            profile_custom = None
 
         can_view = False
         is_own_profile = current_user.is_authenticated and current_user == profile_user
@@ -121,6 +132,7 @@ class UserDetailView(DetailView):
         context['can_view_profile'] = can_view
         context['is_own_profile'] = is_own_profile
         context['privacy_visibility'] = privacy_settings.profile_visibility
+        context['profile_custom'] = profile_custom
         
         if can_view:
             posts = Post.objects.filter(author=profile_user).order_by('-created_at')
@@ -174,3 +186,14 @@ class UnfollowView(LoginRequiredMixin, View):
         target_user = get_object_or_404(User, handle=handle)
         Follow.objects.filter(follower=request.user, following=target_user).delete()
         return redirect('users:user_detail', handle=handle)
+
+
+class UpdateStatusView(LoginRequiredMixin, View):
+    def post(self, request):
+        status = request.POST.get('status')
+        if status in ['online', 'dnd', 'inactive', 'offline']:
+            request.user.status = status
+            request.user.save()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success', 'new_status': status})
+        return redirect('users:profile')

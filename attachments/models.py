@@ -19,12 +19,10 @@ class Media(models.Model):
     
     @property
     def is_image(self):
-        """Check if media is an image."""
         IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif')
         return self.file.name.lower().endswith(IMAGE_EXTENSIONS)
     
     @property
     def is_video(self):
-        """Check if media is a video."""
         VIDEO_EXTENSIONS = ('.mp4', '.webm', '.avi', '.mov', '.mkv')
         return self.file.name.lower().endswith(VIDEO_EXTENSIONS)

@@ -86,10 +86,10 @@ class Command(BaseCommand):
 
             title = f"{random.choice(titles)} #{i+1}"
             description = random.choice(descriptions)
+            content = f"{title}\n\n{description}"
             
             post = Post.objects.create(
-                title=title,
-                description=description,
+                content=content,
                 author=user
             )
 

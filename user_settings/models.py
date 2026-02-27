@@ -45,6 +45,28 @@ class PrivacySettings(models.Model):
         return f"Privacy settings for {self.user}"
 
 
+class ProfileCustomization(models.Model):
+    """Store profile appearance customizations"""
+    WALL_STYLE_CHOICES = [
+        ('classic', 'Classic Wall'),
+        ('compact', 'Compact View'),
+        ('detailed', 'Detailed View'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile_customization")
+    cover_photo = models.ImageField(upload_to="covers/", blank=True, null=True)
+    show_bio = models.BooleanField(default=True)
+    show_location = models.BooleanField(default=True)
+    show_birth_date = models.BooleanField(default=True)
+    show_member_since = models.BooleanField(default=True)
+    wall_style = models.CharField(max_length=20, choices=WALL_STYLE_CHOICES, default='classic')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile customization for {self.user}"
+
+
 class Friend(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

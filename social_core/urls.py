@@ -24,6 +24,8 @@ urlpatterns = [
     path('accounts/', include('users.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
     path('settings/', include('user_settings.urls')),
+    path('api/messages/', include('messaging.urls')),
+    path('notifications/', include('notifications.urls')),
     path('', include('posts.urls')),        
     path('', include('comments.urls')),     
     path('', include('reactions.urls')),    

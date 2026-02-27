@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}{{ profile_user.get_display_name }}'s Friends - RetroNetwork{% endblock %}
 
 {% block content %}
@@ -28,9 +29,9 @@
               {% if friend.avatar %}
                 <img src="{{ friend.avatar.url }}" alt="{{ friend.get_display_name }}">
               {% else %}
-                <div class="friend-card-placeholder">👤</div>
+                <div style="width: 100%; aspect-ratio: 1; border-radius: 3px; background-color: {{ friend.handle|avatar_color }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold;">{{ friend.handle|avatar_letter }}</div>
               {% endif %}
-              <h3><a href="{% url 'users:user_detail' friend.handle %}">{{ friend.get_display_name }}</a></h3>
+              <h3><a href="{% if friend.handle %}{% url 'users:user_detail' friend.handle %}{% endif %}">{{ friend.get_display_name }}</a></h3>
               <p class="handle">@{{ friend.handle }}</p>
               {% if friend.bio %}<p class="bio">{{ friend.bio|truncatewords:10 }}</p>{% endif %}
             </div>
@@ -41,7 +42,11 @@
       {% endif %}
 
       <div style="margin-top:12px;">
-        <a href="{% url 'users:user_detail' profile_user.handle %}" class="btn">← Back to profile</a>
+        {% if user == profile_user %}
+          <a href="{% url 'users:profile' %}" class="btn">← Back to My Profile</a>
+        {% else %}
+          <a href="{% url 'users:user_detail' profile_user.handle %}" class="btn">← Back to Profile</a>
+        {% endif %}
       </div>
     {% endif %}
 

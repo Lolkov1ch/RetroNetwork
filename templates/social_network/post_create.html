@@ -9,15 +9,9 @@
       {% csrf_token %}
 
       <div class="form-field">
-        {{ form.title.label_tag }}
-        {{ form.title }}
-        {% for error in form.title.errors %}<div class="field-errors"><p>{{ error }}</p></div>{% endfor %}
-      </div>
-
-      <div class="form-field">
-        {{ form.description.label_tag }}
-        {{ form.description }}
-        {% for error in form.description.errors %}<div class="field-errors"><p>{{ error }}</p></div>{% endfor %}
+        {{ form.content.label_tag }}
+        {{ form.content }}
+        {% for error in form.content.errors %}<div class="field-errors"><p>{{ error }}</p></div>{% endfor %}
       </div>
 
       <div class="form-field">

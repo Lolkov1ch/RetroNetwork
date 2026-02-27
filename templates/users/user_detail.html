@@ -1,27 +1,28 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}{{ profile_user.get_display_name }} - RetroNetwork{% endblock %}
 
 {% block content %}
 
 {% if is_blocked %}
   <div class="panel">
-    <div class="panel-header">[ Access Denied ]</div>
+    <div class="panel-header">Access Denied</div>
     <div class="panel-body blocked-notice">
       <h2>User Blocked</h2>
       <p>You have blocked this user. You cannot view their profile.</p>
       <div class="actions" style="justify-content:center;margin-top:12px;">
         <form method="post" action="{% url 'user_settings:unblock' profile_user.handle %}">
           {% csrf_token %}
-          <button type="submit">Unblock User</button>
+          <button type="submit" class="btn">Unblock User</button>
         </form>
-        <a href="{% url 'posts:post_list' %}" class="btn">Go back</a>
+        <a href="{% url 'posts:post_list' %}" class="btn btn-secondary">Go back</a>
       </div>
     </div>
   </div>
 
 {% elif not can_view_profile %}
   <div class="panel">
-    <div class="panel-header">[ Private Profile ]</div>
+    <div class="panel-header">Private Profile</div>
     <div class="panel-body private-notice">
       <h2>This Profile is Private</h2>
       <p>
@@ -34,53 +35,64 @@
   </div>
 
 {% else %}
-
   <div class="panel">
-    <div class="panel-header">[ {{ profile_user.get_display_name }} ]</div>
-    <div class="panel-body" style="padding:0;">
-
+    <div style="height: 200px; position: relative; border-radius: 5px 5px 0 0; background-size: cover; background-position: center; 
+      {% if profile_custom and profile_custom.cover_photo %}
+        background-image: url('{{ profile_custom.cover_photo.url }}');
+      {% else %}
+        background: linear-gradient(135deg, #3b5998 0%, #2d4373 100%);
+      {% endif %}
+    "></div>
+    
+    <div class="panel-body" style="position: relative; padding-top: 60px;">
+      
       <div class="profile-header">
-        <div class="profile-avatar">
+        <div style="position: absolute; top: -60px; left: 12px;">
           {% if profile_user.avatar %}
-            <img src="{{ profile_user.avatar.url }}" alt="Avatar">
+            <img src="{{ profile_user.avatar.url }}" alt="{{ profile_user.get_display_name }}" style="width: 120px; height: 120px; border-radius: 3px; border: 4px solid white; object-fit: cover;">
           {% else %}
-            <div class="profile-avatar-placeholder">👤</div>
+            <div style="width: 120px; height: 120px; border-radius: 3px; border: 4px solid white; background-color: {{ profile_user.handle|avatar_color }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold;">{{ profile_user.handle|avatar_letter }}</div>
           {% endif %}
         </div>
-        <div class="profile-info">
-          <h1>{{ profile_user.get_display_name }}</h1>
-          <p class="profile-handle">@{{ profile_user.handle }}<span class="online-dot"></span></p>
-          {% if profile_user.bio %}<p class="profile-bio">{{ profile_user.bio }}</p>{% endif %}
-          <p class="profile-meta"><strong>Followers:</strong> {{ profile_user.followers.count }}</p>
+
+        <div style="margin-left: 140px;">
+          <h1 style="margin: 0 0 4px 0;">{{ profile_user.get_display_name }}</h1>
+          <p class="profile-handle" style="margin: 0 0 8px 0;">
+            @{{ profile_user.handle }}
+            <span class="status-dot status-{{ profile_user.status }}" data-user-id="{{ profile_user.id }}"></span>
+            <span class="user-status-text" data-user-id="{{ profile_user.id }}" style="font-size: 12px; color: #65676b; margin-left: 4px;">({{ profile_user.get_status_display }})</span>
+          </p>
+          {% if profile_user.bio and profile_custom.show_bio %}
+            <p class="profile-bio" style="margin: 0; font-size: 13px; color: #65676b;">{{ profile_user.bio }}</p>
+          {% endif %}
+        </div>
+
+        <div style="margin-left: auto; text-align: right;">
+          <div style="font-size: 12px; color: #65676b; margin-bottom: 8px;">
+            <strong style="font-size: 14px; color: var(--text-main);">{{ profile_user.followers.count }}</strong> Followers
+          </div>
         </div>
       </div>
 
-      <table class="profile-table">
-        <tr><td>Email</td><td>{{ profile_user.email }}</td></tr>
-        {% if profile_user.birth_date %}
-          <tr><td>Birth Date</td><td>{{ profile_user.birth_date|date:"F d, Y" }}</td></tr>
-        {% endif %}
-      </table>
-
-      <!-- Кнопки действий -->
-      <div class="profile-actions-bar">
+      <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 8px;">
         {% if is_own_profile %}
-          <a href="{% url 'user_settings:edit_profile' %}" class="btn">Edit Profile</a>
-          <a href="{% url 'user_settings:friends_list' profile_user.handle %}" class="btn">Friends</a>
-          <a href="{% url 'user_settings:privacy_settings' %}" class="btn">Privacy</a>
+          <a href="{% url 'user_settings:edit_profile' %}" class="btn btn-primary">✎ Edit Profile</a>
+          <a href="{% url 'user_settings:profile_customize' %}" class="btn btn-primary">🎨 Customize</a>
+          {% if profile_user.handle %}<a href="{% url 'user_settings:friends_list' profile_user.handle %}" class="btn btn-secondary">👥 Friends</a>{% endif %}
+          <a href="{% url 'user_settings:privacy_settings' %}" class="btn btn-secondary">🔒 Privacy</a>
         {% else %}
-          <a href="{% url 'user_settings:friends_list' profile_user.handle %}" class="btn">Friends</a>
+          {% if profile_user.handle %}<a href="{% url 'user_settings:friends_list' profile_user.handle %}" class="btn btn-secondary">👥 Friends</a>{% endif %}
 
           {% if user.is_authenticated %}
             {% if is_following %}
               <form method="post" action="{% url 'users:unfollow' profile_user.handle %}" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit">✓ Following</button>
+                <button type="submit" class="btn btn-secondary">✓ Following</button>
               </form>
             {% else %}
               <form method="post" action="{% url 'users:follow' profile_user.handle %}" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit">Follow</button>
+                <button type="submit" class="btn btn-primary">+ Follow</button>
               </form>
             {% endif %}
 
@@ -88,30 +100,39 @@
               {% if friend_request_status == "pending" %}
                 {% if friend_request.receiver == user %}
                   <form method="post" action="{% url 'user_settings:accept_friend_request' profile_user.handle %}" style="display:inline;">
-                    {% csrf_token %}<button type="submit">Accept Friend Req</button>
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">✓ Accept Friend Req</button>
                   </form>
                   <form method="post" action="{% url 'user_settings:reject_friend_request' profile_user.handle %}" style="display:inline;">
-                    {% csrf_token %}<button type="submit" class="btn-danger">Reject</button>
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">✕ Reject</button>
                   </form>
                 {% else %}
-                  <button disabled>Request Sent</button>
+                  <button disabled class="btn btn-secondary">⏳ Request Sent</button>
                 {% endif %}
               {% elif friend_request_status == "accepted" %}
-                <button disabled>✓ Friends</button>
+                <button disabled class="btn btn-secondary">✓ Friends</button>
+                <form method="post" action="{% url 'user_settings:remove_friend' profile_user.handle %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger">✕ Remove Friend</button>
+                </form>
               {% endif %}
             {% else %}
               <form method="post" action="{% url 'user_settings:send_friend_request' profile_user.handle %}" style="display:inline;">
-                {% csrf_token %}<button type="submit">Add Friend</button>
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">+ Add Friend</button>
               </form>
             {% endif %}
 
             {% if is_blocking %}
-              <form method="post" action="{% url 'user_settings:unblock' profile_user.handle %}" style="display:inline;">
-                {% csrf_token %}<button type="submit" class="btn btn-danger">Unblock</button>
+              <form method="post" action="{% url 'user_settings:unblock' profile_user.handle %}" style="display:inline; margin-left: auto;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">🔓 Unblock</button>
               </form>
             {% else %}
-              <form method="post" action="{% url 'user_settings:block' profile_user.handle %}" style="display:inline;">
-                {% csrf_token %}<button type="submit" class="btn btn-danger">Block</button>
+              <form method="post" action="{% url 'user_settings:block' profile_user.handle %}" style="display:inline; margin-left: auto;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">🔒 Block</button>
               </form>
             {% endif %}
           {% endif %}
@@ -121,40 +142,95 @@
     </div>
   </div>
 
+  <div class="panel">
+    <div class="panel-header">About</div>
+    <div class="panel-body">
+      <table class="profile-table" style="width: 100%;">
+        {% if profile_user.birth_date and profile_custom.show_birth_date %}
+          <tr>
+            <td style="width: 120px;">Birthday</td>
+            <td>{{ profile_user.birth_date|date:"F d, Y" }}</td>
+          </tr>
+        {% endif %}
+        {% if profile_user.address and profile_custom.show_location %}
+          <tr>
+            <td>Location</td>
+            <td>{{ profile_user.address }}</td>
+          </tr>
+        {% endif %}
+        {% if profile_custom.show_member_since %}
+          <tr>
+            <td>Member Since</td>
+            <td>{{ profile_user.date_joined|date:"F Y" }}</td>
+          </tr>
+        {% endif %}
+        <tr>
+          <td>Followers</td>
+          <td>{{ profile_user.followers.count }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
   {% if can_view_profile %}
     <div class="panel">
-      <div class="panel-header">[ Posts ]</div>
-      <div class="panel-body" style="padding:6px;">
+      <div class="panel-header">Wall / Timeline</div>
+      <div class="panel-body" style="padding: 0;">
+        
         {% if posts %}
-          <div class="user-posts">
+          <div class="post-list" style="padding: 12px;">
             {% for post in posts %}
               <a href="{% url 'posts:post_detail' post.id %}" class="post-link">
-                <div class="user-post">
+                <div class="post">
+                  <div class="post-header">
+                    <div class="post-author">{{ profile_user.get_display_name }} <a href="{% url 'users:user_detail' profile_user.handle %}" onclick="event.stopPropagation();">@{{ profile_user.handle }}</a></div>
+                    <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
+                  </div>
+
+                  <div class="post-text">{{ post.description }}</div>
+
                   {% if post.thumbnail_url %}
-                    <div class="user-post-thumbnail-container">
-                      <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}">
-                      <div class="user-post-thumbnail-overlay"></div>
+                    <div class="post-media">
+                      <img src="/media/{{ post.thumbnail_url }}" alt="">
                     </div>
                   {% elif post.images or post.videos %}
-                    <div class="user-post-thumbnail-container">
-                      {% if post.images %}<img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
-                      {% elif post.videos %}<video><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>{% endif %}
-                      <div class="user-post-thumbnail-overlay"></div>
+                    <div class="post-media">
+                      {% if post.images %}
+                        <img src="{{ post.images.0.file.url }}" alt="">
+                      {% elif post.videos %}
+                        <video controls><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+                      {% endif %}
                     </div>
                   {% endif %}
-                  <h3 class="user-post-title">{{ post.title }}</h3>
-                  <p class="user-post-description">{{ post.description }}</p>
-                  <small class="user-post-date">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+
+                  <div class="post-actions">
+                    <form method="post" action="{% url 'reactions:post_like' post.id %}" onclick="event.stopPropagation();" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit">♥ {{ post.likes.count }}</button>
+                    </form>
+                    <span class="comment-count">💬 {{ post.comments.count }}</span>
+                    {% if is_own_profile %}
+                      <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.id %}';" style="margin-left: auto;">Edit</button>
+                      <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.id %}';">Del</button>
+                    {% endif %}
+                  </div>
                 </div>
               </a>
             {% endfor %}
           </div>
         {% else %}
-          <div class="empty-state">// No posts yet.</div>
+          <div class="empty-state">
+            <p>📭 No posts on this wall yet</p>
+            {% if is_own_profile %}
+              <a href="{% url 'posts:post_create' %}" class="btn btn-primary" style="margin-top: 12px;">Create First Post</a>
+            {% endif %}
+          </div>
         {% endif %}
+
       </div>
     </div>
   {% endif %}
 
 {% endif %}
+
 {% endblock %}

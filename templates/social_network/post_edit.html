@@ -9,13 +9,8 @@
       {% csrf_token %}
 
       <div class="form-field">
-        {{ form.title.label_tag }}
-        {{ form.title }}
-      </div>
-
-      <div class="form-field">
-        {{ form.description.label_tag }}
-        {{ form.description }}
+        {{ form.content.label_tag }}
+        {{ form.content }}
       </div>
 
       {% if media_files %}

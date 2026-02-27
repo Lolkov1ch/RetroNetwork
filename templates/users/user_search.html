@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}User Search - RetroNetwork{% endblock %}
 
 {% block content %}
@@ -19,13 +20,13 @@
   <div class="panel">
     <div class="panel-body" style="padding:0;">
       {% for user in users %}
-        <a href="{% url 'users:user_detail' user.handle %}" style="text-decoration:none;">
+        <a href="{% if user.handle %}{% url 'users:user_detail' user.handle %}{% endif %}" style="text-decoration:none;">
           <div class="user-card">
             <div class="user-card-avatar">
               {% if user.avatar %}
                 <img src="{{ user.avatar.url }}" alt="avatar">
               {% else %}
-                <div class="user-card-avatar-placeholder">👤</div>
+                <div style="width: 60px; height: 60px; border-radius: 3px; border: 1px solid var(--border-color); background-color: {{ user.handle|avatar_color }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">{{ user.handle|avatar_letter }}</div>
               {% endif %}
             </div>
             <div class="user-card-info">

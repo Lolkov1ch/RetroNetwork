@@ -1,47 +1,57 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}RetroNetwork | My Page{% endblock %}
 
 {% block content %}
 
 <div class="panel">
-  <div class="panel-header">[ My Page ]</div>
-  <div class="panel-body" style="padding:0;">
-
+  <div style="height: 200px; position: relative; border-radius: 5px 5px 0 0; background-size: cover; background-position: center; 
+    {% if profile_custom and profile_custom.cover_photo %}
+      background-image: url('{{ profile_custom.cover_photo.url }}');
+    {% else %}
+      background: linear-gradient(135deg, #3b5998 0%, #2d4373 100%);
+    {% endif %}
+  "></div>
+  
+  <div class="panel-body" style="position: relative; padding-top: 60px;">
+    
     <div class="profile-header">
-      <div class="profile-avatar">
+      <div style="position: absolute; top: -60px; left: 12px;">
         {% if user.avatar %}
-          <img src="{{ user.avatar.url }}" alt="Avatar">
+          <img src="{{ user.avatar.url }}" alt="{{ user.get_display_name }}" style="width: 120px; height: 120px; border-radius: 3px; border: 4px solid white; object-fit: cover;">
         {% else %}
-          <div class="profile-avatar-placeholder">👤</div>
+          <div style="width: 120px; height: 120px; border-radius: 3px; border: 4px solid white; background-color: {{ user.handle|avatar_color }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold;">{{ user.handle|avatar_letter }}</div>
         {% endif %}
       </div>
-      <div class="profile-info">
-        <h1>{{ user.get_display_name }}</h1>
-        <p class="profile-handle">@{{ user.handle }}<span class="online-dot"></span></p>
-        {% if user.bio %}<p class="profile-bio">{{ user.bio }}</p>{% endif %}
+
+      <div style="margin-left: 140px;">
+        <h1 style="margin: 0 0 4px 0;">{{ user.get_display_name }}</h1>
+          <p class="profile-handle" style="margin: 0 0 8px 0;">
+          @{{ user.handle }}
+          <span class="status-dot status-{{ user.status }}" data-user-id="{{ user.id }}"></span>
+          <span class="user-status-text" data-user-id="{{ user.id }}" style="font-size: 12px; color: #65676b; margin-left: 4px;">({{ user.get_status_display }})</span>
+        </p>
+        {% if user.bio and profile_custom.show_bio %}
+          <p class="profile-bio" style="margin: 0; font-size: 13px; color: #65676b;">{{ user.bio }}</p>
+        {% endif %}
+      </div>
+
+      <div style="margin-left: auto; text-align: right;">
+        <div style="font-size: 12px; color: #65676b; margin-bottom: 8px;">
+          <strong style="font-size: 14px; color: var(--text-main);">{{ user.followers.count }}</strong> Followers
+        </div>
       </div>
     </div>
 
-    <table class="profile-table">
-      <tr><td>Handle</td><td>@{{ user.handle }}</td></tr>
-      <tr><td>Email</td><td>{{ user.email }}</td></tr>
-      <tr><td>Followers</td><td>{{ user.followers.count }}</td></tr>
-      {% if user.birth_date %}
-        <tr><td>Birth Date</td><td>{{ user.birth_date }}</td></tr>
-      {% endif %}
-      {% if user.address %}
-        <tr><td>Address</td><td>{{ user.address }}</td></tr>
-      {% endif %}
-    </table>
-
-    <div class="profile-actions-bar">
-      <a href="{% url 'user_settings:edit_profile' %}" class="btn">Edit Profile</a>
-      <a href="{% url 'user_settings:change_password' %}" class="btn">Change Password</a>
-      <a href="{% url 'user_settings:notification_settings' %}" class="btn">Notifications</a>
-      <a href="{% url 'user_settings:privacy_settings' %}" class="btn">Privacy</a>
-      <form method="post" action="{% url 'logout' %}" style="margin-left:auto;">
+    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 8px;">
+      <a href="{% url 'user_settings:edit_profile' %}" class="btn btn-primary">✎ Edit Profile</a>
+      <a href="{% url 'user_settings:profile_customize' %}" class="btn btn-primary">🎨 Customize</a>
+      {% if user.handle %}<a href="{% url 'user_settings:friends_list' user.handle %}" class="btn btn-secondary">👥 Friends</a>{% endif %}
+      <a href="{% url 'user_settings:notification_settings' %}" class="btn btn-secondary">🔔 Notifications</a>
+      <a href="{% url 'user_settings:privacy_settings' %}" class="btn btn-secondary">🔒 Privacy</a>
+      <form method="post" action="{% url 'users:logout' %}" style="display:inline; margin-left: auto;">
         {% csrf_token %}
-        <button type="submit" class="nav-logout">Log out</button>
+        <button type="submit" class="btn btn-danger">🚪 Log Out</button>
       </form>
     </div>
 
@@ -49,43 +59,117 @@
 </div>
 
 <div class="panel">
-  <div class="panel-header">[ My Posts ]</div>
-  <div class="panel-body" style="padding:6px;">
+  <div class="panel-header">About</div>
+  <div class="panel-body">
+    <table class="profile-table" style="width: 100%;">
+      <tr>
+        <td>Email</td>
+        <td>{{ user.email }}</td>
+      </tr>
+      {% if user.birth_date and profile_custom.show_birth_date %}
+        <tr>
+          <td>Birthday</td>
+          <td>{{ user.birth_date|date:"F d, Y" }}</td>
+        </tr>
+      {% endif %}
+      {% if user.address and profile_custom.show_location %}
+        <tr>
+          <td>Location</td>
+          <td>{{ user.address }}</td>
+        </tr>
+      {% endif %}
+      {% if profile_custom.show_member_since %}
+        <tr>
+          <td>Member Since</td>
+          <td>{{ user.date_joined|date:"F Y" }}</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <td>Followers</td>
+        <td>{{ user.followers.count }}</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">Statistics</div>
+  <div class="panel-body">
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: bold; color: #3b5998;">{{ posts.count }}</div>
+        <div style="font-size: 12px; color: #65676b; margin-top: 4px;">Posts</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: bold; color: #3b5998;">{{ user.followers.count }}</div>
+        <div style="font-size: 12px; color: #65676b; margin-top: 4px;">Followers</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: bold; color: #3b5998;">{{ user.following.count }}</div>
+        <div style="font-size: 12px; color: #65676b; margin-top: 4px;">Following</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 28px; font-weight: bold; color: #3b5998;">{{ user.date_joined|date:"Y" }}</div>
+        <div style="font-size: 12px; color: #65676b; margin-top: 4px;">Joined</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">My Wall</div>
+  <div class="panel-body" style="padding: 0;">
+    
+    <div style="padding: 12px; border-bottom: 1px solid var(--border-color);">
+      <a href="{% url 'posts:post_create' %}" class="btn btn-primary" style="width: 100%;">✏️ Create New Post</a>
+    </div>
+
     {% if posts %}
-      <div class="user-posts">
+      <div class="post-list" style="padding: 12px;">
         {% for post in posts %}
           <a href="{% url 'posts:post_detail' post.id %}" class="post-link">
-            <div class="user-post">
+            <div class="post">
+              <div class="post-header">
+                <div class="post-author">{{ user.get_display_name }} <a href="{% url 'users:user_detail' user.handle %}" onclick="event.stopPropagation();">@{{ user.handle }}</a></div>
+                <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
+              </div>
+
+              <div class="post-text">{{ post.description }}</div>
+
               {% if post.thumbnail_url %}
-                <div class="user-post-thumbnail-container">
-                  <img src="{{ post.thumbnail_url }}" alt="{{ post.title }}">
-                  <div class="user-post-thumbnail-overlay"></div>
+                <div class="post-media">
+                  <img src="/media/{{ post.thumbnail_url }}" alt="">
                 </div>
-              {% elif post.images %}
-                <div class="user-post-thumbnail-container">
-                  <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
-                  <div class="user-post-thumbnail-overlay"></div>
-                </div>
-              {% elif post.videos %}
-                <div class="user-post-thumbnail-container">
-                  <video muted preload="metadata">
-                    <source src="{{ post.videos.0.file.url }}" type="video/mp4">
-                  </video>
-                  <div class="user-post-thumbnail-overlay"></div>
+              {% elif post.images or post.videos %}
+                <div class="post-media">
+                  {% if post.images %}
+                    <img src="{{ post.images.0.file.url }}" alt="">
+                  {% elif post.videos %}
+                    <video controls><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+                  {% endif %}
                 </div>
               {% endif %}
-              <h3 class="user-post-title">{{ post.title }}</h3>
-              <p class="user-post-description">{{ post.description }}</p>
-              <small class="user-post-date">{{ post.created_at|date:"d.m.Y H:i" }}</small>
+
+              <div class="post-actions">
+                <form method="post" action="{% url 'reactions:post_like' post.id %}" onclick="event.stopPropagation();" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit">♥ {{ post.likes.count }}</button>
+                </form>
+                <span class="comment-count">💬 {{ post.comments.count }}</span>
+                <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.id %}';" style="margin-left: auto;">Edit</button>
+                <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.id %}';">Del</button>
+              </div>
             </div>
           </a>
         {% endfor %}
       </div>
     {% else %}
       <div class="empty-state">
-        // No posts yet. <a href="{% url 'posts:post_create' %}">Create one?</a>
+        <p>📭 Your wall is empty</p>
+        <a href="{% url 'posts:post_create' %}" class="btn btn-primary" style="margin-top: 12px;">Create First Post</a>
       </div>
     {% endif %}
+
   </div>
 </div>
 

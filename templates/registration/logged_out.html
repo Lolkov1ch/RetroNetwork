@@ -2,6 +2,7 @@
 {% block title %}RetroNetwork | Logged Out{% endblock %}
 {% block content %}
 <div class="auth-wrap">
+
   <div class="panel auth-panel">
     <div class="panel-header">[ Session Ended ]</div>
     <div class="panel-body" style="text-align:center;padding:24px 20px;">
@@ -10,9 +11,17 @@
       </p>
       <div style="display:flex;gap:8px;justify-content:center;">
         <a href="{% url 'users:login' %}" class="btn btn-primary">Sign in again</a>
-        <a href="{% url 'posts:post_list' %}" class="btn">Main Page</a>
+        <a href="{% url 'users:register' %}" class="btn">Register</a>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.auth-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    window.location.href = '{% url 'users:login' %}';
+  });
+});
+</script>
 {% endblock %}

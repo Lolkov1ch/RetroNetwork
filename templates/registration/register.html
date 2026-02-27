@@ -3,6 +3,7 @@
 
 {% block content %}
 <div class="auth-wrap">
+
   <div class="panel auth-panel">
     <div class="panel-header">[ Create Account ]</div>
     <div class="panel-body">
@@ -55,4 +56,12 @@
     </div>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.auth-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    window.location.href = '{% url 'users:login' %}';
+  });
+});
+</script>
 {% endblock %}

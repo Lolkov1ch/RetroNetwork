@@ -1,38 +1,40 @@
 {% for post in posts %}
   <a href="{% url 'posts:post_detail' post.pk %}" class="post-link">
     <div class="post">
+      <div class="post-header">
+        <div class="post-author">
+          {{ post.author.get_display_name }} 
+          {% if post.author.handle %}<a href="{% url 'users:user_detail' post.author.handle %}" onclick="event.stopPropagation();">@{{ post.author.handle }}</a>{% else %}@unknown{% endif %}
+        </div>
+        <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
+      </div>
+
+      <div class="post-text">{{ post.content }}</div>
+
       {% if post.thumbnail_url %}
-        <div class="post-thumbnail-container">
-          <img src="/media/{{ post.thumbnail_url }}" alt="{{ post.title }}">
-          <div class="post-thumbnail-overlay"></div>
+        <div class="post-media">
+          <img src="/media/{{ post.thumbnail_url }}" alt="">
         </div>
       {% elif post.images or post.videos %}
-        <div class="post-thumbnail-container">
+        <div class="post-media">
           {% if post.images %}
-            <img src="{{ post.images.0.file.url }}" alt="{{ post.title }}">
+            <img src="{{ post.images.0.file.url }}" alt="">
           {% elif post.videos %}
-            <video><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+            <video controls><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
           {% endif %}
-          <div class="post-thumbnail-overlay"></div>
         </div>
       {% endif %}
-      <div class="post-info">
-        <h2>{{ post.title|truncatewords:5 }}</h2>
-        <p class="post-description">{{ post.description|truncatewords:10 }}</p>
-        <div class="post-meta">
-          <span>by <a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></span>
-          <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
-        </div>
-        <div class="post-actions">
-          <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
-            {% csrf_token %}
-            <button type="submit">♥ {{ post.likes.count }}</button>
-          </form>
-          {% if user.is_authenticated and user == post.author %}
-            <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.pk %}';">Edit</button>
-            <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.pk %}';">Del</button>
-          {% endif %}
-        </div>
+
+      <div class="post-actions">
+        <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
+          {% csrf_token %}
+          <button type="submit">♥ {{ post.likes.count }}</button>
+        </form>
+        <span class="comment-count">💬 {{ post.comments.count }}</span>
+        {% if user.is_authenticated and user == post.author %}
+          <button type="button" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_update' post.pk %}';">Edit</button>
+          <button type="button" class="btn-danger" onclick="event.stopPropagation();window.location.href='{% url 'posts:post_delete' post.pk %}';">Del</button>
+        {% endif %}
       </div>
     </div>
   </a>
