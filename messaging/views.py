@@ -15,8 +15,6 @@ from django.utils import timezone
 
 from PIL import Image as PilImage
 
-from time import timezone
-
 from .models import Conversation, Message, MessageReaction, MessageAttachment
 from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer, UserSimpleSerializer, MessageAttachmentSerializer
 
@@ -135,26 +133,36 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def messages(self, request, pk=None):
-        """Return messages for this conversation, paginated."""
+        """Return messages for this conversation, paginated.
+
+        Messages are returned oldest-first (ascending by `created_at`).
+        Supports `offset` and `limit` query params and returns `count`.
+        """
         conversation = self.get_object()
 
         if request.user not in conversation.participants.all():
             raise permissions.PermissionDenied("You are not a participant in this conversation")
 
         qs = (
-            conversation.messages.all()
+            Message.objects
+            .filter(conversation=conversation)
             .select_related('sender')
             .prefetch_related('read_by_users', 'reactions')
-            .order_by('-created_at')
+            .order_by('created_at')
         )
 
-        page = self.paginate_queryset(qs)
-        if page is not None:
-            serializer = MessageSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
+        offset = int(request.query_params.get('offset', 0))
+        limit = int(request.query_params.get('limit', 30))
+
+        total = qs.count()
+        qs = qs[offset: offset + limit]
 
         serializer = MessageSerializer(qs, many=True, context={'request': request})
-        return Response(serializer.data)
+
+        return Response({
+            'count': total,
+            'results': serializer.data
+        })
 
     @action(detail=False, methods=["get"])
     def search_users(self, request):
@@ -201,29 +209,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         serializer = ConversationSerializer(conversation, context={"request": request})
         return Response(serializer.data, status=200)
     
-    @action(detail=True, methods=["get"])
-    def messages(self, request, pk=None):
-        conversation = self.get_object()
-
-        qs = (
-            Message.objects
-            .filter(conversation=conversation)
-            .select_related("sender")
-            .order_by("-created_at")
-        )
-
-        offset = int(request.query_params.get("offset", 0))
-        limit = int(request.query_params.get("limit", 30))
-
-        total = qs.count()
-        qs = qs[offset: offset + limit]
-
-        serializer = MessageSerializer(qs, many=True, context={"request": request})
-
-        return Response({
-            "count": total,
-            "results": serializer.data
-        })
+    # messages action is implemented above (ascending order, paginated)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -232,12 +218,12 @@ class MessageViewSet(viewsets.ModelViewSet):
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_queryset(self):
-        # newest messages first; reverse the default model ordering
+        # messages returned oldest-first (ascending by created_at)
         return (
             Message.objects.filter(conversation__participants=self.request.user)
             .select_related("sender")
             .prefetch_related("read_by_users", "reactions")
-            .order_by("-created_at")
+            .order_by("created_at")
         )
 
     def perform_create(self, serializer):
@@ -266,8 +252,8 @@ class MessageViewSet(viewsets.ModelViewSet):
             conversation=conversation,
         )
 
-        # attach file safely
-        if uploaded and message_type in {"image", "video", "voice"}:
+        # attach file safely (including audio/voice)
+        if uploaded and message_type in {"image", "video", "voice", "audio"}:
             try:
                 if message_type == "image":
                     message.image = uploaded
