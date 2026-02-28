@@ -2,44 +2,52 @@
 set -e
 
 echo "Starting production deployment..."
-echo "DATABASE_URL: ${DATABASE_URL:0:20}..." 
 
-# If DATABASE_URL is set, wait for the database
-if [ -n "$DATABASE_URL" ]; then
-    echo "Waiting for PostgreSQL to be available..."
-    max_retries=30
+# Check if running on Render
+if [ "$RENDER" = "true" ]; then
+    echo "Detected Render environment"
+    echo "Waiting for PostgreSQL service to be available..."
+    
+    # Render uses internal service names for service-to-service communication
+    max_retries=60
     retry_count=0
     
     while [ $retry_count -lt $max_retries ]; do
         python << 'EOF'
 import os
-import psycopg2
+import time
+import socket
+
+# Try to connect to the database service via Render's internal hostname
+host = 'retronetwork-db'
+port = 5432
+timeout = 5
+
 try:
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    conn.close()
-    print('✓ Database ready!')
+    socket.create_connection((host, port), timeout=timeout)
+    print(f'✓ PostgreSQL service available at {host}:{port}')
     exit(0)
-except Exception as e:
-    print(f'✗ Connection failed: {str(e)[:80]}')
+except (socket.timeout, ConnectionRefusedError, OSError) as e:
+    print(f'✗ Cannot reach {host}:{port} - {str(e)[:60]}')
     exit(1)
 EOF
         if [ $? -eq 0 ]; then
+            echo "✓ Database service is ready!"
             break
         fi
         retry_count=$((retry_count + 1))
-        echo "Attempt $retry_count/$max_retries..."
-        sleep 2
+        if [ $((retry_count % 10)) -eq 0 ]; then
+            echo "Still waiting for database... (attempt $retry_count/$max_retries)"
+        fi
+        sleep 1
     done
     
     if [ $retry_count -eq $max_retries ]; then
-        echo "ERROR: Could not connect to database after $max_retries attempts"
+        echo "ERROR: PostgreSQL service did not become available after $max_retries attempts"
         exit 1
     fi
 else
-    echo "ERROR: DATABASE_URL environment variable is not set!"
-    echo "Available environment variables:"
-    env | grep -E "^[A-Z]" || true
-    exit 1
+    echo "Local development mode detected"
 fi
 
 echo "Running Django database migrations..."
@@ -48,7 +56,8 @@ python manage.py migrate --noinput --verbosity 2
 echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear --verbosity 1
 
-echo "✓ Initialization complete, starting Gunicorn..."
+echo "✓ Deployment initialization complete"
+echo "Starting Gunicorn server on port 8000..."
 exec gunicorn social_core.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 3 \

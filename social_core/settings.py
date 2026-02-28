@@ -117,7 +117,7 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# PostgreSQL only - no SQLite fallback
+# PostgreSQL configuration for both production and local development
 if 'DATABASE_URL' in os.environ:
     # Production (Render): use DATABASE_URL environment variable
     DATABASES = {
@@ -128,8 +128,30 @@ if 'DATABASE_URL' in os.environ:
             engine='django.db.backends.postgresql'
         )
     }
+elif os.environ.get('RENDER') == 'true':
+    # Production on Render: build connection string from internal hostname
+    # Render provides: RENDER_INTERNAL_HOSTNAME and database defaults
+    db_name = os.environ.get('DB_NAME', 'postgres')
+    db_user = os.environ.get('DB_USER', 'postgres')
+    db_password = os.environ.get('DB_PASSWORD', '')
+    db_host = 'retronetwork-db'  # Internal service name
+    db_port = 5432
+    
+    if db_password:
+        DATABASE_URL = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+    else:
+        DATABASE_URL = f'postgresql://{db_user}@{db_host}:{db_port}/{db_name}'
+    
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            engine='django.db.backends.postgresql'
+        )
+    }
 else:
-    # Local development: use PostgreSQL only
+    # Local development: use PostgreSQL with environment variables or defaults
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
