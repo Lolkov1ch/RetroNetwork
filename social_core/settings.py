@@ -65,7 +65,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # For efficient static file serving in production
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -118,42 +118,27 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 # PostgreSQL configuration
-if os.environ.get('DATABASE_URL'):
-    # Use explicit DATABASE_URL if provided
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
-            engine='django.db.backends.postgresql'
         )
     }
-elif os.environ.get('RENDER') == 'true':
-    # Render environment: use internal database service with embedded PostgreSQL
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'django',
-            'USER': 'postgres',
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'retronetwork_db_password'),
-            'HOST': 'localhost',
-            'PORT': 5432,
-            'CONN_MAX_AGE': 600,
-            'CONN_HEALTH_CHECKS': True,
-        }
-    }
 else:
-    # Local development: use PostgreSQL with environment variables or defaults
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'retronetwork'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 600,
-            'CONN_HEALTH_CHECKS': True,
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "retronetwork"),
+            "USER": os.environ.get("DB_USER", "postgres"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "postgres"),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 
