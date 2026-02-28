@@ -117,34 +117,29 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# PostgreSQL configuration for both production and local development
-if 'DATABASE_URL' in os.environ:
-    # Production (Render): use DATABASE_URL environment variable if available
+# PostgreSQL configuration - prioritize DATABASE_URL from Render
+if os.environ.get('DATABASE_URL'):
+    # Production (Render): use DATABASE_URL from Render's PostgreSQL service
     DATABASES = {
         'default': dj_database_url.config(
-            default=os.environ['DATABASE_URL'],
+            default=os.environ.get('DATABASE_URL'),
             conn_max_age=600,
             conn_health_checks=True,
             engine='django.db.backends.postgresql'
         )
     }
 elif os.environ.get('RENDER') == 'true':
-    # Production on Render: use internal service name with PostgreSQL defaults
-    # Render provides internal service-to-service networking
+    # Fallback for Render if DATABASE_URL not yet available (shouldn't happen)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'postgres',
             'USER': 'postgres',
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+            'PASSWORD': '',
             'HOST': 'retronetwork-db',
             'PORT': 5432,
             'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': {
-                'connect_timeout': 10,
-                'options': '-c statement_timeout=30000'
-            }
         }
     }
 else:
