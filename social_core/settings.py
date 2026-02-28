@@ -129,15 +129,14 @@ if os.environ.get('DATABASE_URL'):
         )
     }
 elif os.environ.get('RENDER') == 'true':
-    # Render environment: use internal database service
-    # Render will auto-create the database with defaults
+    # Render environment: use internal database service with embedded PostgreSQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'postgres',
+            'NAME': 'django',
             'USER': 'postgres',
-            'PASSWORD': '',
-            'HOST': 'localhost',  # Changed from retronetwork-db to localhost
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'retronetwork_db_password'),
+            'HOST': 'localhost',
             'PORT': 5432,
             'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,

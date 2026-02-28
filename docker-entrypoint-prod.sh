@@ -3,6 +3,10 @@ set -e
 
 echo "=== Django Production Deployment ==="
 
+# PostgreSQL password
+PGPASSWORD="${POSTGRES_PASSWORD:-retronetwork_db_password}"
+export PGPASSWORD
+
 # Start PostgreSQL server in the background
 echo "Starting PostgreSQL server..."
 /etc/init.d/postgresql start || true
@@ -27,10 +31,14 @@ if [ $attempt -eq $max_attempts ]; then
     echo "PostgreSQL startup timeout, but continuing..."
 fi
 
+# Set password for postgres user if not already set
+echo "Setting PostgreSQL postgres user password..."
+psql -h localhost -U postgres -tc "ALTER USER postgres WITH PASSWORD '$PGPASSWORD';" 2>/dev/null || true
+
 # Create django database if it doesn't exist
-echo "Ensuring PostgreSQL database exists..."
-PGPASSWORD="" psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'django'" 2>/dev/null | grep -q 1 || \
-PGPASSWORD="" psql -h localhost -U postgres -c "CREATE DATABASE django" 2>/dev/null || true
+echo "Ensuring 'django' database exists..."
+psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'django'" 2>/dev/null | grep -q 1 || \
+psql -h localhost -U postgres -c "CREATE DATABASE django" 2>/dev/null || true
 
 # Run migrations
 echo "Running Django database migrations..."
