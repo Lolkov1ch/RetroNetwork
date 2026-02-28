@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Recent Activity - RetroNetwork{% endblock %}
+
+{% block content %}
+<style>
+  .activity-container { max-width: 600px; }
+  .activity-tabs { padding: 12px; display: flex; gap: 12px; }
+  .activity-tab { padding: 8px 16px; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; flex: 1; }
+  .activity-tab.active { background: #3b5998; color: white; }
+  .activity-tab.inactive { background: #e9ecef; color: #333; }
+  .post-item { margin-top: 12px; }
+  .post-header { padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+  .post-author-info { display: flex; align-items: center; gap: 8px; }
+  .post-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; }
+  .post-author-name { font-weight: 600; color: var(--text-main); font-size: 13px; }
+  .post-author-handle { font-size: 11px; color: #65676b; }
+  .post-author-handle a { color: #3b5998; text-decoration: none; }
+  .post-date { font-size: 11px; color: #65676b; }
+  .post-content { padding: 12px; cursor: pointer; color: var(--text-main); line-height: 1.5; font-size: 13px; margin-bottom: 8px; }
+  .post-stats { padding: 8px 12px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; font-size: 12px; color: #65676b; }
+  .post-stats a { color: #3b5998; text-decoration: none; margin-left: auto; }
+  .empty-state { margin-top: 12px; text-align: center; padding: 40px 20px; }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-text { color: #65676b; font-size: 13px; margin: 0; }
+  .empty-subtext { color: #999; font-size: 12px; margin-top: 8px; }
+  .empty-button { display: inline-block; margin-top: 12px; padding: 8px 16px; background: #3b5998; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; }
+  .mark-all-button { width: 100%; padding: 8px 12px; background: #f0f2f5; color: #333; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; font-size: 12px; margin-bottom: 12px; }
+  .notification-item { margin-top: 12px; }
+  .notification-item.unread { background: #f0f6ff; }
+  .notification-content { padding: 12px; display: flex; gap: 12px; border-bottom: 1px solid var(--border-color); }
+  .notification-info { flex: 1; min-width: 0; }
+  .notification-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .notification-type { font-weight: 700; color: #3b5998; font-size: 12px; }
+  .notification-sender { color: var(--text-main); font-size: 13px; margin-left: 6px; }
+  .notification-body { color: var(--text-main); font-size: 13px; margin-top: 6px; word-break: break-word; }
+  .notification-time { font-size: 11px; color: #65676b; margin-top: 4px; }
+  .mark-read-button { padding: 4px 8px; background: #e74856; color: white; border: none; border-radius: 2px; cursor: pointer; font-size: 11px; flex-shrink: 0; }
+</style>
+
+<div class="activity-container">
+  <div class="panel">
+    <div class="panel-header">📱 Recent Activity</div>
+    <div class="panel-body activity-tabs">
+      <button class="activity-tab active" id="postsTab" data-section="posts">Posts ({{ posts|length }})</button>
+      <button class="activity-tab inactive" id="notificationsTab" data-section="notifications">Notifications ({{ unread_count }})</button>
+    </div>
+  </div>
+
+  <div id="postsSection" class="section-content" style="display: block;">
+    {% if posts %}
+      {% for post in posts %}
+        <div class="panel post-item">
+          <div class="post-header">
+            <div class="post-author-info">
+              {% if post.author.avatar %}
+                <img src="{{ post.author.avatar.url }}" alt="{{ post.author.handle }}" class="post-avatar">
+              {% else %}
+                <div class="avatar-placeholder">{{ post.author.handle|first|upper }}</div>
+              {% endif %}
+              <div>
+                <div class="post-author-name">{{ post.author.get_display_name }}</div>
+                <div class="post-author-handle"><a href="{% url 'users:user_detail' post.author.handle %}">@{{ post.author.handle }}</a></div>
+              </div>
+            </div>
+            <div class="post-date">{{ post.created_at|date:"M d, Y" }}</div>
+          </div>
+
+          <div class="post-content" data-post-id="{{ post.id }}">
+            {{ post.description|truncatewords:60 }}
+          </div>
+
+          <div class="post-stats">
+            <span>👍 {{ post.likes.count }}</span>
+            <span>💬 {{ post.comments.count }}</span>
+            <a href="{% url 'posts:post_detail' post.id %}">View Post →</a>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="panel post-item">
+        <div class="panel-body empty-state">
+          <div class="empty-icon">🔍</div>
+          <p class="empty-text">No recent activity from people you follow.</p>
+          <p class="empty-subtext">Start following people to see their posts!</p>
+          <a href="{% url 'users:user_search' %}" class="empty-button">Find Friends</a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div id="notificationsSection" class="section-content" style="display: none;">
+    {% if notifications %}
+      <div style="margin-top: 12px;">
+        <button id="markAllReadBtn" class="mark-all-button">Mark All as Read</button>
+      </div>
+      {% for n in notifications %}
+        <div class="panel notification-item {% if not n.is_read %}unread{% endif %}">
+          <div class="notification-content">
+            {% if n.sender and n.sender.avatar %}
+              <img src="{{ n.sender.avatar.url }}" alt="{{ n.sender.handle }}" class="post-avatar" style="flex-shrink: 0;">
+            {% else %}
+              <div class="avatar-placeholder" style="flex-shrink: 0;">{{ n.sender_name|first|upper }}</div>
+            {% endif %}
+            <div class="notification-info">
+              <div class="notification-header">
+                <div>
+                  <span class="notification-type">{{ n.get_type_display }}</span>
+                  <span class="notification-sender">{{ n.sender_name }}</span>
+                </div>
+                {% if not n.is_read %}
+                  <button class="mark-read-button" data-notification-id="{{ n.id }}">✓</button>
+                {% endif %}
+              </div>
+              <div class="notification-body">{{ n.content|truncatechars:100 }}</div>
+              <div class="notification-time">{{ n.created_at|date:'M d, H:i' }}</div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="panel post-item">
+        <div class="panel-body empty-state">
+          <div class="empty-icon">🔔</div>
+          <p class="empty-text">No notifications yet.</p>
+          <p class="empty-subtext">Stay tuned for updates from your friends!</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    const postsTab = document.getElementById('postsTab');
+    const notificationsTab = document.getElementById('notificationsTab');
+    const postsSection = document.getElementById('postsSection');
+    const notificationsSection = document.getElementById('notificationsSection');
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    const markReadBtns = document.querySelectorAll('.mark-read-button');
+    const postContentDivs = document.querySelectorAll('.post-content');
+    
+    function showSection(section) {
+      if (section === 'posts') {
+        postsSection.style.display = 'block';
+        notificationsSection.style.display = 'none';
+        postsTab.classList.add('active');
+        postsTab.classList.remove('inactive');
+        notificationsTab.classList.remove('active');
+        notificationsTab.classList.add('inactive');
+      } else {
+        postsSection.style.display = 'none';
+        notificationsSection.style.display = 'block';
+        postsTab.classList.remove('active');
+        postsTab.classList.add('inactive');
+        notificationsTab.classList.add('active');
+        notificationsTab.classList.remove('inactive');
+      }
+    }
+    
+    postsTab.addEventListener('click', () => showSection('posts'));
+    notificationsTab.addEventListener('click', () => showSection('notifications'));
+    
+    postContentDivs.forEach(div => {
+      div.addEventListener('click', function() {
+        const postId = this.dataset.postId;
+        if (postId) {
+          window.location = '/posts/' + postId + '/';
+        }
+      });
+    });
+    
+    markReadBtns.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const notificationId = this.dataset.notificationId;
+        if (!notificationId) return;
+        
+        const csrftoken = getCookie('csrftoken');
+        fetch('/notifications/mark-read/' + notificationId + '/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+          }
+        }).then(function() {
+          location.reload();
+        });
+      });
+    });
+    
+    if (markAllReadBtn) {
+      markAllReadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const csrftoken = getCookie('csrftoken');
+        fetch('/notifications/mark-all-read/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+          }
+        }).then(function() {
+          location.reload();
+        });
+      });
+    }
+  });
+</script>
+
+{% endblock %}

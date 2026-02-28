@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Search - RetroNetwork{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-body">
+    <form method="get" action="{% url 'posts:post_search' %}" class="search-bar">
+    </form>
+  </div>
+</div>
+
+{% if posts %}
+  <div style="margin-top: 12px;">
+    {% for post in posts %}
+      <div class="panel" style="margin-bottom: 12px; cursor: pointer;" onclick="window.location='{% url 'posts:post_detail' post.id %}';">
+        <div style="padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            {% if post.author.avatar %}
+              <img src="{{ post.author.avatar.url }}" alt="{{ post.author.handle }}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+            {% else %}
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                {{ post.author.handle|first|upper }}
+              </div>
+            {% endif %}
+            <div>
+              <div style="font-weight: 600; color: var(--text-main); font-size: 13px;">{{ post.author.get_display_name }}</div>
+              <div style="font-size: 11px; color: #65676b;">
+                <a href="{% url 'users:user_detail' post.author.handle %}" onclick="event.stopPropagation();" style="color: #3b5998; text-decoration: none;">@{{ post.author.handle }}</a>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #65676b;">{{ post.created_at|date:"M d, Y" }}</div>
+        </div>
+
+        <div style="padding: 12px;">
+          <div style="color: var(--text-main); line-height: 1.5; font-size: 13px;">
+            {{ post.content|truncatewords:60 }}
+          </div>
+
+          {% if post.thumbnail_url %}
+            <div style="margin-top: 10px; border-radius: 4px; overflow: hidden; max-height: 300px; background: var(--border-color);">
+              <img src="/media/{{ post.thumbnail_url }}" alt="Post thumbnail" style="width: 100%; height: auto; max-height: 300px; object-fit: cover;">
+            </div>
+          {% elif post.images or post.videos %}
+            <div style="margin-top: 10px; border-radius: 4px; overflow: hidden; max-height: 300px; background: var(--border-color);">
+              {% if post.images %}
+                <img src="{{ post.images.0.file.url }}" alt="Post image" style="width: 100%; height: auto; max-height: 300px; object-fit: cover;">
+              {% elif post.videos %}
+                <video controls style="width: 100%; max-height: 300px;"><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div style="padding: 8px 12px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; font-size: 12px; color: #65676b;">
+          <span>👍 {{ post.likes.count }}</span>
+          <span>💬 {{ post.comments.count }}</span>
+          <a href="{% url 'posts:post_detail' post.id %}" style="color: #3b5998; text-decoration: none; margin-left: auto;" onclick="event.stopPropagation();">View →</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+    <div style="margin-top: 20px; padding: 12px; text-align: center;">
+      {% if page_obj.has_previous %}
+        <a href="?q={{ search_query }}&page=1" style="padding: 6px 12px; background: #3b5998; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; margin-right: 4px;">«</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}" style="padding: 6px 12px; background: #3b5998; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; margin-right: 4px;">‹ Prev</a>
+      {% endif %}
+
+      <span style="font-size: 12px; color: #65676b; padding: 0 8px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}" style="padding: 6px 12px; background: #3b5998; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; margin-left: 4px;">Next ›</a>
+        <a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}" style="padding: 6px 12px; background: #3b5998; color: white; text-decoration: none; border-radius: 3px; font-size: 12px; margin-left: 4px;">»</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% elif search_query %}
+  <div class="panel" style="margin-top: 12px;">
+    <div class="panel-body" style="text-align: center; padding: 40px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">🔍</div>
+      <p style="color: #65676b; font-size: 13px; margin: 0;">No posts found for "{{ search_query }}"</p>
+      <p style="color: #999; font-size: 12px; margin-top: 8px;">Try searching with different keywords</p>
+    </div>
+  </div>
+{% else %}
+  <div class="panel" style="margin-top: 12px;">
+    <div class="panel-body" style="text-align: center; padding: 40px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">📝</div>
+      <p style="color: #65676b; font-size: 13px; margin: 0;">Search posts by title or content</p>
+      <p style="color: #999; font-size: 12px; margin-top: 8px;">Enter keywords to find what you're looking for</p>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

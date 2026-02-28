@@ -1,0 +1,459 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}RetroNetwork{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  {% block extra_css %}{% endblock %}
+  <script>
+    const savedTheme = localStorage.getItem('retronetwork-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="header-inner">
+    <a href="{% url 'posts:post_list' %}" class="site-logo">RetroNetwork</a>
+
+    <form class="nav-search" method="get" action="{% url 'posts:post_search' %}">
+      <input type="search" name="q" placeholder="Search..." value="{{ request.GET.q }}" autocomplete="off">
+      <button type="submit">🔍</button>
+    </form>
+
+    <div class="nav-auth">
+      {% if user.is_authenticated %}
+        <span class="nav-handle">
+          <span class="status-dot status-{{ user.status }}" data-user-id="{{ user.id }}"></span>
+          {{ user.handle }}
+        </span>
+        <button id="themeToggle" class="nav-link" style="background: none; border: none; cursor: pointer; padding: 0; font-size: 16px;" title="Toggle dark mode">🌙</button>
+        <a href="{% url 'users:profile' %}" class="nav-link">My Page</a>
+        <form method="post" action="{% url 'users:logout' %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="nav-logout">Log out</button>
+        </form>
+<script>
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function initThemeToggle() {
+  const themeToggle = document.getElementById('themeToggle');
+  if (!themeToggle) return;
+  
+  const updateThemeIcon = () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+  };
+  
+  updateThemeIcon();
+  
+  themeToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('retronetwork-theme', newTheme);
+    updateThemeIcon();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initThemeToggle);
+
+var shownNotificationIds = new Set();
+var notificationsInitialized = false;
+
+function renderNotificationList(notifications) {
+  var list = document.querySelector('.notification-list');
+  if (!list) return;
+
+  if (notifications && notifications.length > 0) {
+    var html = '<ul style="list-style: none; margin: 0; padding: 0;">';
+    notifications.forEach(function(notif) {
+      html += '<li class="notification-item' + (notif.is_read ? '' : ' unread') + '" style="padding: 8px 0; border-bottom: none; font-size: 12px; background: ' + (notif.is_read ? '#fff' : '#f0f6ff') + ';">';
+      html += '<div style="font-weight: 600; color: #3b5998; font-size: 11px; margin-bottom: 2px;">' + notif.type + '</div>';
+      var content = notif.content || '';
+      html += '<div style="color: var(--text-main); font-size: 12px; margin-bottom: 2px; line-height: 1.4;">' + (content.length > 80 ? content.substring(0, 77) + '...' : content) + '</div>';
+      html += '<div style="color: #999; font-size: 11px;">' + notif.created_at + '</div>';
+      html += '</li>';
+    });
+    html += '</ul>';
+    list.innerHTML = html;
+  } else {
+    list.innerHTML = '<div style="padding: 8px 0; color: #999; font-size: 12px;">No new notifications</div>';
+  }
+}
+
+function fetchAndUpdateNotifications(suppressToasts) {
+  fetch('/notifications/json/')
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+      var notifications = data.notifications || [];
+
+      if (!notificationsInitialized) {
+        notifications.forEach(function(notif) {
+          shownNotificationIds.add(notif.id);
+        });
+        notificationsInitialized = true;
+      } else if (!suppressToasts) {
+        notifications.forEach(function(notif) {
+          if (!notif.is_read && !shownNotificationIds.has(notif.id)) {
+            shownNotificationIds.add(notif.id);
+            window.showNotification(
+              notif.sender_name || 'Notification',
+              notif.sender_avatar || '',
+              notif.content || ''
+            );
+          }
+        });
+      }
+
+      renderNotificationList(notifications);
+    })
+    .catch(function(err) {
+    });
+}
+
+function markAllNotificationsAsRead(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  var csrftoken = getCookie('csrftoken');
+
+  fetch('/notifications/mark-all-read/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrftoken,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+      fetchAndUpdateNotifications(true);
+    })
+    .catch(function(err) {
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  fetchAndUpdateNotifications(false);
+
+  setInterval(function() { fetchAndUpdateNotifications(false); }, 10000);
+
+  var markAllReadForm = document.getElementById('markAllReadForm');
+  if (markAllReadForm) {
+    markAllReadForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var csrftoken = getCookie('csrftoken');
+
+      fetch(markAllReadForm.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(function(resp) {
+        if (!resp.ok) throw new Error('HTTP error ' + resp.status);
+        return resp.json();
+      })
+      .then(function(data) {
+        setTimeout(function() {
+          fetchAndUpdateNotifications(true);
+        }, 100);
+      })
+      .catch(function(err) {
+      });
+    });
+  }
+});
+</script>
+      {% else %}
+        <a href="{% url 'users:login' %}" class="nav-link">Sign in</a>
+        <a href="{% url 'users:register' %}" class="nav-link nav-register">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="page-root">
+
+  {% if user.is_authenticated %}
+  <div class="sidebar-left">
+    <nav class="sidebar-menu">
+      <a href="{% url 'posts:post_list' %}" class="nav-item">My Feed</a>
+      <a href="{% url 'users:profile' %}" class="nav-item">My Page</a>
+      <a href="{% url 'messaging:messenger' %}" class="nav-item">Messages</a>
+      <a href="{% url 'user_settings:profile_customize' %}" class="nav-item">Customize Profile</a>
+      {% if user.handle %}<a href="{% url 'user_settings:friends_list' user.handle %}" class="nav-item">My Friends</a>{% endif %}
+      <a href="{% url 'users:user_search' %}" class="nav-item">Find Friends</a>
+      <a href="{% url 'user_settings:friend_requests' %}" class="nav-item">Friend Requests</a>
+      <a href="{% url 'user_settings:recent_activity' %}" class="nav-item">Recent Activity</a>
+      <a href="{% url 'posts:post_create' %}" class="nav-item">New Post</a>
+      
+      <div style="padding: 6px 8px; margin: 4px 0;">
+        <select id="sidebar-status-select" class="sidebar-status-select">
+          <option value="online" data-label="Online">Online</option>
+          <option value="dnd" data-label="Do Not Disturb">Do Not Disturb</option>
+          <option value="inactive" data-label="Inactive">Inactive</option>
+          <option value="offline" data-label="Offline">Offline</option>
+        </select>
+      </div>
+      
+      <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border-color);">
+      <a href="{% url 'user_settings:privacy_settings' %}" class="nav-item">Privacy</a>
+      <a href="{% url 'user_settings:change_password' %}" class="nav-item">Change Password</a>
+    </nav>
+  </div>
+  {% endif %}
+
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <div class="sidebar-right">
+    {% if user.is_authenticated %}
+      <div class="sidebar-widget">
+        <div class="sidebar-widget-header">🔔 Notifications</div>
+        <div class="notification-list" id="sidebarNotificationList" style="padding: 8px 0;">
+          {% if notifications and notifications|length > 0 %}
+            <ul style="list-style: none; margin: 0; padding: 0;">
+              {% for n in notifications %}
+                <li class="notification-item{% if not n.is_read %} unread{% endif %}" style="padding: 8px 0; border-bottom: none; font-size: 12px;">
+                  <div style="font-weight: 600; color: #3b5998; font-size: 11px; margin-bottom: 2px;">{{ n.get_type_display }}</div>
+                  <div style="color: var(--text-main); font-size: 12px; margin-bottom: 2px; line-height: 1.4;">{{ n.content|truncatechars:80 }}</div>
+                  <div style="color: #999; font-size: 11px;">{{ n.created_at|date:'M d, H:i' }}</div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div style="padding: 8px 0; color: #999; font-size: 12px;">No new notifications</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="site-footer">
+  RetroNetwork &copy; 2026
+</div>
+
+<div id="notifications-container" class="notifications-container"></div>
+
+<style>
+.notification-avatar-placeholder {
+  background: #3b5998;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+</style>
+
+<script>
+let notificationQueue = [];
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+window.showNotification = function(senderName, senderAvatar, messageContent, conversationId) {
+  const notifId = 'notif-' + Date.now();
+  const notificationsContainer = document.getElementById('notifications-container');
+  const notifEl = document.createElement('div');
+  notifEl.className = 'notification-toast';
+  notifEl.id = notifId;
+
+  let avatarHtml;
+  if (senderAvatar) {
+    avatarHtml = `<img class="notification-avatar" src="${senderAvatar}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div class="notification-avatar notification-avatar-placeholder" style="display:none;">${escapeHtml((senderName || '?').charAt(0).toUpperCase())}</div>`;
+  } else {
+    avatarHtml = `<div class="notification-avatar notification-avatar-placeholder">${escapeHtml((senderName || '?').charAt(0).toUpperCase())}</div>`;
+  }
+
+  notifEl.innerHTML = `
+    ${avatarHtml}
+    <div class="notification-content">
+      <div class="notification-name">${escapeHtml(senderName)}</div>
+      <div class="notification-message">${escapeHtml(messageContent)}</div>
+    </div>
+    <button class="notification-close" title="Close">×</button>
+  `;
+
+  notificationsContainer.appendChild(notifEl);
+
+  notifEl.querySelector('.notification-close').addEventListener('click', () => {
+    window.removeNotification(notifId);
+  });
+
+  const autoRemoveTimer = setTimeout(() => {
+    window.removeNotification(notifId);
+  }, 5000);
+
+  notificationQueue.push({ id: notifId, timer: autoRemoveTimer });
+
+  try {
+    const statusDot = document.querySelector('.status-dot[data-user-id]');
+    const currentStatus = statusDot ? statusDot.className.split('status-')[1] : 'offline';
+    const shouldPlaySound = currentStatus !== 'dnd';
+    if (shouldPlaySound) {
+      window.playNotificationSound();
+    }
+  } catch (err) {
+  }
+};
+
+window.removeNotification = function(notifId) {
+  const notifEl = document.getElementById(notifId);
+  if (!notifEl) return;
+
+  notificationQueue = notificationQueue.filter(n => {
+    if (n.id === notifId) {
+      clearTimeout(n.timer);
+      return false;
+    }
+    return true;
+  });
+
+  notifEl.classList.add('removing');
+  setTimeout(() => {
+    if (notifEl.parentNode) {
+      notifEl.parentNode.removeChild(notifEl);
+    }
+  }, 300);
+};
+
+window.playNotificationSound = function() {
+  try {
+    const audio = new Audio('/static/sounds/message.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(err => {
+    });
+  } catch (e) {
+  }
+};
+
+window.changeUserStatus = function(newStatus) {
+  if (!['online', 'dnd', 'inactive', 'offline'].includes(newStatus)) return;
+
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.getElementById('csrfToken')?.value || '';
+
+  fetch('/api/messages/conversations/change_status/', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken,
+    },
+    body: JSON.stringify({ status: newStatus })
+  })
+  .then(res => res.json().catch(() => ({})))
+  .then(data => {
+    const sidebarSelect = document.getElementById('sidebar-status-select');
+    const messengerSelect = document.getElementById('messengerStatusSelect');
+    const profileSelect = document.getElementById('statusSelect');
+
+    if (sidebarSelect) sidebarSelect.value = newStatus;
+    if (messengerSelect) messengerSelect.value = newStatus;
+    if (profileSelect) profileSelect.value = newStatus;
+
+    const headerStatusDot = document.querySelector('.nav-auth .status-dot');
+    if (headerStatusDot) headerStatusDot.className = 'status-dot status-' + newStatus;
+  })
+  .catch(err => {});
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  const statusSelect = document.getElementById('sidebar-status-select');
+  const headerStatusDot = document.querySelector('.nav-auth .status-dot');
+  
+  const currentStatus = '{{ user.status }}';
+  if (statusSelect) {
+    statusSelect.value = currentStatus;
+  }
+  
+  if (statusSelect) {
+    statusSelect.addEventListener('change', function() {
+      const newStatus = this.value;
+      if (window.changeUserStatus) {
+        window.changeUserStatus(newStatus);
+      }
+    });
+  }
+});
+
+(() => {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsHost = window.location.host;
+  const url = `${wsProtocol}//${wsHost}/ws/presence/`;
+  try {
+    const presenceWs = new WebSocket(url);
+    window.presenceWs = presenceWs;
+    presenceWs.onmessage = (e) => {
+      let data;
+      try { data = JSON.parse(e.data); } catch { return; }
+      if (data.type !== 'user_status_changed') return;
+      const userId = data.user_id;
+      const status = data.status;
+
+      document.querySelectorAll(`[data-user-id="${userId}"]`).forEach(el => {
+        if (el.classList.contains('status-dot')) {
+          el.className = 'status-dot status-' + status;
+        } else if (el.classList.contains('conversation-status-dot')) {
+          el.className = 'conversation-status-dot status-' + status;
+        } else if (el.classList.contains('user-status-text')) {
+          el.textContent = `(${status.charAt(0).toUpperCase() + status.slice(1).replace(/dnd/, 'Do Not Disturb')})`;
+        } else if (el.id === 'chatStatus') {
+          el.className = 'messenger-chat-status status-' + status;
+          el.textContent = (typeof window.getStatusText === 'function') ? window.getStatusText(status) : el.textContent;
+        }
+      });
+
+      if (window.userStatuses) {
+        window.userStatuses[userId] = status;
+        if (typeof window.renderConversations === 'function') {
+          try {
+            const q = (typeof window.getMessengerSearchQuery === 'function') ? window.getMessengerSearchQuery() : '';
+            window.renderConversations(q || '');
+          } catch {}
+        }
+      }
+    };
+    presenceWs.onopen = () => {};
+    presenceWs.onclose = () => {};
+  } catch (err) {
+  }
+})();
+</script>
+
+</body>
+</html>

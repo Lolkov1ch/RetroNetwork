@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}RetroNetwork | Create Post{% endblock %}
+
+{% block content %}
+<div class="panel" style="max-width:680px;margin:0 auto;">
+  <div class="panel-header">[ Create New Post ]</div>
+  <div class="panel-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="form-field">
+        {{ form.content.label_tag }}
+        {{ form.content }}
+        {% for error in form.content.errors %}<div class="field-errors"><p>{{ error }}</p></div>{% endfor %}
+      </div>
+
+      <div class="form-field">
+        <label>Attach images / video</label>
+        <input type="file" name="images" multiple accept="image/*,video/*">
+      </div>
+
+      <div class="actions" style="margin-top:10px;">
+        <button type="submit">Publish</button>
+        <a href="{% url 'posts:post_list' %}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

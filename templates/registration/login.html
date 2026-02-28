@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}RetroNetwork | Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+
+  <div class="panel auth-panel">
+    <div class="panel-header">[ Sign In ]</div>
+    <div class="panel-body">
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-field">
+          <label for="{{ form.username.id_for_label }}">Email or @handle</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <div class="field-errors">{% for e in form.username.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-field">
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }}
+          {% if form.password.errors %}
+            <div class="field-errors">{% for e in form.password.errors %}<p>{{ e }}</p>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" style="width:100%;margin-top:6px;letter-spacing:2px;">Sign In</button>
+      </form>
+
+      <p class="auth-alt">Don't have an account? <a href="{% url 'users:register' %}">Register</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.auth-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    window.location.href = '{% url 'users:login' %}';
+  });
+});
+</script>
+{% endblock %}

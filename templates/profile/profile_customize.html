@@ -1,0 +1,84 @@
+{% extends 'profile/settings_base.html' %}
+{% load static %}
+{% block title %}RetroNetwork | Customize Profile{% endblock %}
+
+{% block settings_content %}
+
+<div class="panel">
+  <div class="panel-header">Customize Your Profile</div>
+  <div class="panel-body">
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="settings-box">
+        <h2>Profile Appearance</h2>
+        
+        <p style="font-size: 12px; color: #65676b; margin-bottom: 16px;">
+          Customize how your profile looks to others.
+        </p>
+
+        <div class="form-field">
+          <label>{{ form.cover_photo.label }}</label>
+          <p style="font-size: 12px; color: #65676b; margin-bottom: 8px;">
+            Upload a banner image for your profile (recommended: 1200x400px)
+          </p>
+          {% if object.cover_photo %}
+            <div style="margin-bottom: 8px;">
+              <img src="{{ object.cover_photo.url }}" alt="Cover Photo" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 5px; border: 1px solid #cdd0d7;">
+            </div>
+          {% else %}
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 100%; height: 200px; border-radius: 5px; border: 1px solid #cdd0d7; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; margin-bottom: 8px;">
+              No cover photo
+            </div>
+          {% endif %}
+          {{ form.cover_photo }}
+        </div>
+
+        <div class="form-field">
+          <label>{{ form.color_theme.label }}</label>
+          <p style="font-size: 12px; color: #65676b; margin-bottom: 8px;">
+            Choose your profile's accent color
+          </p>
+          {{ form.color_theme }}
+        </div>
+
+        <div class="form-field">
+          <label>About Section Visibility</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+              {{ form.show_bio }} Show bio on profile
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+              {{ form.show_location }} Show location
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+              {{ form.show_birth_date }} Show birth date
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; margin-bottom: 0;">
+              {{ form.show_member_since }} Show member since date
+            </label>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>{{ form.wall_style.label }}</label>
+          <p style="font-size: 12px; color: #65676b; margin-bottom: 8px;">
+            Customize how your wall/timeline appears
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            {{ form.wall_style }}
+          </div>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #cdd0d7;">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="{% url 'users:profile' %}" class="btn btn-secondary" style="margin-left: 8px;">Cancel</a>
+        </div>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

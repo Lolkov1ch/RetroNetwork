@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}{{ profile_user.get_display_name }}'s Friends - RetroNetwork{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">[ {{ profile_user.get_display_name }}'s Friends ]</div>
+  <div class="panel-body">
+
+    {% if is_blocked %}
+      <div class="blocked-notice">
+        <h2>User Blocked</h2>
+        <p>You have blocked this user. You cannot view their friends.</p>
+        <a href="{% url 'posts:post_list' %}" class="btn" style="margin-top:10px;">Go back</a>
+      </div>
+    {% elif not can_view_friends %}
+      <div class="private-notice">
+        <h2>Friends List Private</h2>
+        <p>This user has set their friends list to private.</p>
+        <a href="{% url 'users:user_detail' profile_user.handle %}" class="btn" style="margin-top:10px;">Back to profile</a>
+      </div>
+    {% else %}
+
+      {% if friends %}
+        <p class="search-results-label">Friends ({{ friends.count }})</p>
+        <div class="friends-grid">
+          {% for friend in friends %}
+            <div class="friend-card">
+              {% if friend.avatar %}
+                <img src="{{ friend.avatar.url }}" alt="{{ friend.get_display_name }}">
+              {% else %}
+                <div style="width: 100%; aspect-ratio: 1; border-radius: 3px; background-color: {{ friend.handle|avatar_color }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold;">{{ friend.handle|avatar_letter }}</div>
+              {% endif %}
+              <h3><a href="{% if friend.handle %}{% url 'users:user_detail' friend.handle %}{% endif %}">{{ friend.get_display_name }}</a></h3>
+              <p class="handle">@{{ friend.handle }}</p>
+              {% if friend.bio %}<p class="bio">{{ friend.bio|truncatewords:10 }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">// No friends yet.</div>
+      {% endif %}
+
+      <div style="margin-top:12px;">
+        {% if user == profile_user %}
+          <a href="{% url 'users:profile' %}" class="btn">← Back to My Profile</a>
+        {% else %}
+          <a href="{% url 'users:user_detail' profile_user.handle %}" class="btn">← Back to Profile</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
