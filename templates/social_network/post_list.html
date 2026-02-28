@@ -8,16 +8,16 @@
 
     <div class="post-list" id="posts-container">
       {% for post in posts %}
-        <a href="{% url 'posts:post_detail' post.pk %}" class="post-link">
-          <div class="post">
-            <div class="post-header">
-              <div class="post-author">
-                {{ post.author.get_display_name }} 
-                {% if post.author.handle %}<a href="{% url 'users:user_detail' post.author.handle %}" onclick="event.stopPropagation();">@{{ post.author.handle }}</a>{% else %}@unknown{% endif %}
-              </div>
-              <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
+        <div class="post">
+          <div class="post-header">
+            <div class="post-author">
+              {{ post.author.get_display_name }} 
+              {% if post.author.handle %}<a href="{% url 'users:user_detail' post.author.handle %}" onclick="event.stopPropagation();">@{{ post.author.handle }}</a>{% else %}@unknown{% endif %}
             </div>
+            <div class="post-date">{{ post.created_at|date:"d.m.Y H:i" }}</div>
+          </div>
 
+          <a href="{% url 'posts:post_detail' post.pk %}" class="post-link">
             <div class="post-text">{{ post.content }}</div>
 
             {% if post.thumbnail_url %}
@@ -33,6 +33,7 @@
                 {% endif %}
               </div>
             {% endif %}
+            </a>
             
             <div class="post-actions">
               <form method="post" action="{% url 'reactions:post_like' post.pk %}" onclick="event.stopPropagation();">
@@ -46,7 +47,6 @@
               {% endif %}
             </div>
           </div>
-        </a>
       {% empty %}
         <div class="empty-state">
           <p>// No posts yet.</p>

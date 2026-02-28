@@ -47,7 +47,6 @@
       <a href="{% url 'user_settings:edit_profile' %}" class="btn btn-primary">✎ Edit Profile</a>
       <a href="{% url 'user_settings:profile_customize' %}" class="btn btn-primary">🎨 Customize</a>
       {% if user.handle %}<a href="{% url 'user_settings:friends_list' user.handle %}" class="btn btn-secondary">👥 Friends</a>{% endif %}
-      <a href="{% url 'user_settings:notification_settings' %}" class="btn btn-secondary">🔔 Notifications</a>
       <a href="{% url 'user_settings:privacy_settings' %}" class="btn btn-secondary">🔒 Privacy</a>
       <form method="post" action="{% url 'users:logout' %}" style="display:inline; margin-left: auto;">
         {% csrf_token %}

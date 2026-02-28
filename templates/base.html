@@ -7,6 +7,7 @@
   <title>{% block title %}RetroNetwork{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
   {% block extra_css %}{% endblock %}
   <script>
     const savedTheme = localStorage.getItem('retronetwork-theme') || 'light';
@@ -95,22 +96,16 @@ function renderNotificationList(notifications) {
     });
     html += '</ul>';
     list.innerHTML = html;
-    console.log('Updated notification list with ' + notifications.length + ' notifications');
   } else {
     list.innerHTML = '<div style="padding: 8px 0; color: #999; font-size: 12px;">No new notifications</div>';
   }
 }
 
 function fetchAndUpdateNotifications(suppressToasts) {
-  console.log('Fetching notifications (suppressToasts=' + suppressToasts + ')');
   fetch('/notifications/json/')
     .then(function(resp) { return resp.json(); })
     .then(function(data) {
       var notifications = data.notifications || [];
-      console.log('Fetched ' + notifications.length + ' notifications');
-      notifications.forEach(function(n, i) {
-        console.log('Notification ' + i + ': id=' + n.id + ', is_read=' + n.is_read + ', content=' + n.content);
-      });
 
       if (!notificationsInitialized) {
         notifications.forEach(function(notif) {
@@ -133,7 +128,6 @@ function fetchAndUpdateNotifications(suppressToasts) {
       renderNotificationList(notifications);
     })
     .catch(function(err) {
-      console.error('Error loading notifications:', err);
     });
 }
 
@@ -156,7 +150,6 @@ function markAllNotificationsAsRead(event) {
       fetchAndUpdateNotifications(true);
     })
     .catch(function(err) {
-      console.error('Error marking all as read:', err);
     });
 }
 
@@ -169,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (markAllReadForm) {
     markAllReadForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      console.log('Mark all read button clicked');
       var csrftoken = getCookie('csrftoken');
 
       fetch(markAllReadForm.action, {
@@ -181,18 +173,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .then(function(resp) {
-        console.log('Mark all read response status:', resp.status);
         if (!resp.ok) throw new Error('HTTP error ' + resp.status);
         return resp.json();
       })
       .then(function(data) {
-        console.log('Mark all read successful, refetching notifications');
         setTimeout(function() {
           fetchAndUpdateNotifications(true);
         }, 100);
       })
       .catch(function(err) {
-        console.error('Error in mark all as read:', err);
       });
     });
   }
@@ -231,7 +220,6 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       
       <hr style="margin: 8px 0; border: none; border-top: 1px solid var(--border-color);">
-      <a href="{% url 'user_settings:notification_settings' %}" class="nav-item">Notifications</a>
       <a href="{% url 'user_settings:privacy_settings' %}" class="nav-item">Privacy</a>
       <a href="{% url 'user_settings:change_password' %}" class="nav-item">Change Password</a>
     </nav>
@@ -341,7 +329,6 @@ window.showNotification = function(senderName, senderAvatar, messageContent, con
       window.playNotificationSound();
     }
   } catch (err) {
-    console.error('Error getting user status:', err);
   }
 };
 
@@ -370,10 +357,8 @@ window.playNotificationSound = function() {
     const audio = new Audio('/static/sounds/message.mp3');
     audio.volume = 0.5;
     audio.play().catch(err => {
-      console.warn('Could not play notification sound:', err);
     });
   } catch (e) {
-    console.warn('Notification sound error:', e);
   }
 };
 
@@ -404,7 +389,7 @@ window.changeUserStatus = function(newStatus) {
     const headerStatusDot = document.querySelector('.nav-auth .status-dot');
     if (headerStatusDot) headerStatusDot.className = 'status-dot status-' + newStatus;
   })
-  .catch(err => console.error('changeUserStatus error:', err));
+  .catch(err => {});
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -419,7 +404,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (statusSelect) {
     statusSelect.addEventListener('change', function() {
       const newStatus = this.value;
-      console.log('Sidebar status changed to:', newStatus);
       if (window.changeUserStatus) {
         window.changeUserStatus(newStatus);
       }
@@ -464,10 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     };
-    presenceWs.onopen = () => console.debug('Presence WS connected');
-    presenceWs.onclose = () => console.debug('Presence WS closed');
+    presenceWs.onopen = () => {};
+    presenceWs.onclose = () => {};
   } catch (err) {
-    console.error('Presence WS error', err);
   }
 })();
 </script>

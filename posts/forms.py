@@ -2,7 +2,6 @@ from django import forms
 from PIL import Image as PilImage
 from attachments.models import Media
 from django.core.exceptions import ValidationError
-from django.contrib import messages
 
 ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif']
 ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/avi', 'video/mov']

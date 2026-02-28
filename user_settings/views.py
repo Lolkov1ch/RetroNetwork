@@ -8,9 +8,8 @@ from django.views.generic import ListView, DetailView
 from django.views import View
 from django.db.models import Q
 from django.contrib.auth import get_user_model
-from .models import NotificationSettings, PrivacySettings, Friend, Block, ProfileCustomization
+from .models import PrivacySettings, Friend, Block, ProfileCustomization
 from .forms import (
-    NotificationSettingsForm, 
     PrivacySettingsForm, 
     UserProfileForm, 
     UserPasswordChangeForm,
@@ -18,16 +17,6 @@ from .forms import (
 )
 
 User = get_user_model()
-
-
-class NotificationSettingsUpdateView(LoginRequiredMixin, UpdateView):
-    model = NotificationSettings
-    form_class = NotificationSettingsForm
-    template_name = "profile/notification_settings.html"
-    success_url = reverse_lazy("users:profile")
-
-    def get_object(self):
-        return NotificationSettings.objects.get_or_create(user=self.request.user)[0]
 
 
 class PrivacySettingsUpdateView(LoginRequiredMixin, UpdateView):

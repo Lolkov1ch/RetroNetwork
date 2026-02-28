@@ -127,7 +127,15 @@ class UserDetailView(DetailView):
         elif privacy_settings.profile_visibility == "none":
             can_view = is_own_profile
         elif privacy_settings.profile_visibility == "friends":
-            can_view = is_own_profile
+            if is_own_profile:
+                can_view = True
+            elif current_user.is_authenticated:
+                # Check if current user is a friend of the profile owner
+                friend_relationship = Friend.objects.filter(
+                    Q(requester=current_user, receiver=profile_user, status='accepted') |
+                    Q(requester=profile_user, receiver=current_user, status='accepted')
+                ).exists()
+                can_view = friend_relationship
         
         context['can_view_profile'] = can_view
         context['is_own_profile'] = is_own_profile

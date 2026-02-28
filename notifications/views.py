@@ -11,12 +11,15 @@ def serialize_notification(n):
     if n.sender:
         sender_name = n.sender.handle or n.sender.username
         try:
-            if hasattr(n.sender, 'profile') and n.sender.profile and n.sender.profile.avatar:
-                sender_avatar = n.sender.profile.avatar.url
-        except:
-            sender_avatar = n.sender_avatar or ''
-    else:
+            if n.sender.avatar and n.sender.avatar.name:
+                sender_avatar = n.sender.avatar.url
+        except (AttributeError, FileNotFoundError):
+            pass
+    
+    # Fall back to stored avatar or name
+    if not sender_avatar:
         sender_avatar = n.sender_avatar or ''
+    if not sender_name or sender_name == 'Notification':
         sender_name = n.sender_name or 'Notification'
     
     return {

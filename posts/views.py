@@ -37,13 +37,20 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
 
 class PostListView(ListView):
+    """
+    Display a paginated list of posts with search functionality.
+    Posts are ordered by engagement metrics (likes, comments, views).
+    """
     model = Post
     template_name = "social_network/post_list.html"
     context_object_name = "posts"
     paginate_by = 10
     
     def get_queryset(self):
-        queryset = super().get_queryset()
+        """
+        Get optimized queryset with prefetch_related to avoid N+1 queries.
+        """
+        queryset = super().get_queryset().select_related('author')
         query = self.request.GET.get('q')
 
         if query:
@@ -142,15 +149,21 @@ class PostSearchView(ListView):
     paginate_by = 10
     
     def get_queryset(self):
-        queryset = super().get_queryset()
+        """
+        Get search results with optimized queries.
+        """
+        queryset = super().get_queryset().select_related('author')
         query = self.request.GET.get('q')
 
         if query:
             queryset = queryset.filter(
-                Q(title__icontains=query) | Q(description__icontains=query)
+                Q(content__icontains=query) | Q(author__username__icontains=query)
             )
         
-        posts = queryset.order_by('-id')
+        posts = queryset.annotate(
+            like_count=Count('likes', distinct=True),
+            comment_count=Count('comments', distinct=True)
+        ).order_by('-like_count', '-comment_count', '-views', '-id')
         
         for post in posts:
             all_media = get_post_media(post.id)

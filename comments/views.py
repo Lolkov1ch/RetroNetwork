@@ -5,7 +5,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.views import View
 from django.urls import reverse
-from reactions.models import Like
 from user_settings.models import Block
 
 from posts.models import Post

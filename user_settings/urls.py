@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import (
-    NotificationSettingsUpdateView,
     PrivacySettingsUpdateView,
     ProfileUpdateView,
     ProfileCustomizeView,
@@ -22,7 +21,6 @@ urlpatterns = [
     path('profile/edit/', ProfileUpdateView.as_view(), name='edit_profile'),
     path('profile/customize/', ProfileCustomizeView.as_view(), name='profile_customize'),
     path('profile/password/', CustomPasswordChangeView.as_view(), name='change_password'),
-    path('notifications/', NotificationSettingsUpdateView.as_view(), name='notification_settings'),
     path('privacy/', PrivacySettingsUpdateView.as_view(), name='privacy_settings'),
     path('recent-activity/', RecentActivityView.as_view(), name='recent_activity'),
     path('friend-requests/', FriendRequestsView.as_view(), name='friend_requests'),

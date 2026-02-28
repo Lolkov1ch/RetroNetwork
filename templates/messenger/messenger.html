@@ -116,7 +116,6 @@
         CONFIG.current_user_avatar = userData.avatar || '/static/images/default-avatar.png';
       }
     } catch (e) {
-      console.error('Failed to initialize CONFIG:', e);
     }
   }
 
@@ -135,6 +134,18 @@
     return {
       'X-CSRFToken': getCookie('csrftoken'),
     };
+  }
+
+  function generateAvatarUri(username, size = 80) {
+    const AVATAR_COLORS = [
+      '#3b5998','#dc3545','#28a745','#007bff','#6f42c1','#fd7e14','#20c997','#17a2b8','#6610f2','#e83e8c'
+    ];
+    const colorIndex = username.toLowerCase().split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % AVATAR_COLORS.length;
+    const color = AVATAR_COLORS[colorIndex];
+    const letter = (username && username[0] ? username[0].toUpperCase() : '?');
+    const fontSize = Math.floor(size * 0.5);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="100%" height="100%" fill="${color}"/><text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Lucida Grande, Tahoma, Verdana, Arial, sans-serif" font-size="${fontSize}" fill="#ffffff">${letter}</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
   const EMOJIS = [
@@ -344,7 +355,6 @@
 
       renderConversations(el.searchInput.value || '');
     } catch (e) {
-      console.error(e);
       conversations = [];
       renderConversations('');
     }
@@ -392,20 +402,26 @@
       if (!r.ok) throw new Error('Search failed');
 
       const users = await r.json();
-      if (!users || users.length === 0) {
+      // Filter out the current user (extra safety)
+      const filteredUsers = users.filter(user => user.id !== CONFIG.current_user_id);
+      
+      if (!filteredUsers || filteredUsers.length === 0) {
         el.searchResults.innerHTML = '<div class="search-result-empty">No users found</div>';
       } else {
         el.searchResults.innerHTML = `
           <div class="search-results-header">Users</div>
-          ${users.map(user => `
+          ${filteredUsers.map(user => {
+            const avatarUrl = user.avatar || generateAvatarUri(user.username);
+            return `
             <div class="search-result-item" data-user-id="${user.id}" data-username="${user.username}">
-              <img class="search-result-avatar" src="${user.avatar || CONFIG.current_user_avatar}" alt="">
+              <img class="search-result-avatar" src="${avatarUrl}" alt="">
               <div class="search-result-info">
                 <div class="search-result-name">${escapeHtml(user.display_name || user.username)}</div>
                 <div class="search-result-handle">@${escapeHtml(user.username)}</div>
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         `;
       }
       el.searchResults.classList.remove('hidden');
@@ -432,7 +448,6 @@
         });
       });
     } catch (e) {
-      console.error(e);
       el.searchResults.innerHTML = '<div class="search-result-error">Search error</div>';
     }
   }
@@ -497,7 +512,6 @@
       
       renderMessages({ keepScroll: false });
     } catch (e) {
-      console.error(e);
       messages = [];
       totalMessages = 0;
       renderMessages({ keepScroll: false });
@@ -532,7 +546,7 @@
       totalMessages = data.count || totalMessages;
       hasMoreMessages = currentOffset < totalMessages;
     } catch (e) {
-      console.error('Error loading more messages:', e);
+      hasMoreMessages = currentOffset < totalMessages;
     } finally {
       isLoadingMore = false;
     }
@@ -553,7 +567,6 @@
 
       await loadConversations();
     } catch (e) {
-      console.error('markConversationRead error', e);
     }
   }
   window.markConversationRead = markConversationRead; 
@@ -688,7 +701,6 @@
 
       loadConversations();
     } catch (e) {
-      console.error(e);
       alert('Error: ' + e.message);
     } finally {
       el.sendBtn.disabled = false;
@@ -722,7 +734,6 @@
 
       loadConversations();
     } catch (e) {
-      console.error(e);
       alert('Error: ' + e.message);
     } finally {
       el.sendBtn.disabled = false;
@@ -769,7 +780,6 @@
       await loadConversations();
 
     } catch (e) {
-      console.error(e);
       el.messageInput.value = content;
       alert('Error: ' + e.message);
     } finally {
@@ -812,7 +822,6 @@
 
       await loadConversations();
     } catch (e2) {
-      console.error(e2);
       hideUpload();
       alert('Upload failed: ' + e2.message);
     }
@@ -897,7 +906,6 @@
       el.voiceBtn.textContent = '⏹️';
       el.voiceBtn.style.background = '#ff4444';
     } catch (e) {
-      console.error('Error accessing microphone:', e);
       alert('Unable to access microphone. Please check permissions.');
     }
   }
@@ -934,7 +942,6 @@
 
       loadConversations();
     } catch (e2) {
-      console.error(e2);
       hideUpload();
       alert('Voice upload failed: ' + e2.message);
     }
@@ -1045,7 +1052,6 @@
       await loadConversations();
       selectConversation(conv.id);
     } catch (e) {
-      console.error(e);
       alert('Failed to create conversation');
     }
   }
@@ -1149,7 +1155,6 @@
             if (!document.fullscreenElement) await root.requestFullscreen();
             else await document.exitFullscreen();
           } catch (err) {
-            console.error('Fullscreen error:', err);
           }
         });
       }

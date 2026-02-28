@@ -16,15 +16,6 @@ class AccountSettings(models.Model):
         return f"Account settings for {self.user}"
 
 
-class NotificationSettings(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notification_settings")
-    likes = models.BooleanField(default=True)
-    comments = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"Notification settings for {self.user}"
-
-
 class PrivacySettings(models.Model):
     VISIBILITY_CHOICES = [("all", "Everyone"), ("friends", "Friends only"), ("none", "Only me")]
     
@@ -46,7 +37,6 @@ class PrivacySettings(models.Model):
 
 
 class ProfileCustomization(models.Model):
-    """Store profile appearance customizations"""
     WALL_STYLE_CHOICES = [
         ('classic', 'Classic Wall'),
         ('compact', 'Compact View'),

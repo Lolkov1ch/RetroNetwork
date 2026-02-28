@@ -1,3 +1,5 @@
+import json
+import logging
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,9 +10,10 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import Conversation, Message, MessageReaction
-from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer
+from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer, UserSimpleSerializer
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class MessengerView(LoginRequiredMixin, TemplateView):
@@ -19,11 +22,13 @@ class MessengerView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        import json
         from .serializers import avatar_data_uri
         try:
-            avatar_url = self.request.user.avatar.url
-        except Exception:
+            if self.request.user.avatar and self.request.user.avatar.name:
+                avatar_url = self.request.user.avatar.url
+            else:
+                avatar_url = avatar_data_uri(self.request.user.username, size=80)
+        except (AttributeError, FileNotFoundError, ValueError):
             avatar_url = avatar_data_uri(self.request.user.username, size=80)
 
         context['user_data'] = json.dumps({
@@ -71,9 +76,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
         from django.db.models import Q
         users = User.objects.filter(
             Q(username__icontains=query) | Q(display_name__icontains=query)
-        ).exclude(id=request.user.id).values('id', 'username', 'display_name', 'avatar')[:10]
+        ).exclude(id=request.user.id)[:10]
         
-        return Response(list(users), status=status.HTTP_200_OK)
+        serializer = UserSimpleSerializer(users, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])
     def create_or_get(self, request):
@@ -137,7 +143,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
-        import json
         
         channel_layer = get_channel_layer()
         conversations = Conversation.objects.filter(participants=request.user)
@@ -195,7 +200,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         except Exception:
             limit = 50
 
-        qs = conversation.messages.all().order_by('-created_at')
+        qs = conversation.messages.all().order_by('created_at')
         total_count = qs.count()
         messages = qs[offset:offset+limit]
 

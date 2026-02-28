@@ -1,23 +1,9 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordChangeForm
-from .models import NotificationSettings, PrivacySettings, ProfileCustomization
+from .models import PrivacySettings, ProfileCustomization
 
 User = get_user_model()
-
-
-class NotificationSettingsForm(forms.ModelForm):
-    class Meta:
-        model = NotificationSettings
-        fields = ['likes', 'comments']
-        widgets = {
-            'likes': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'comments': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
-        labels = {
-            'likes': 'Notify me when someone likes my post',
-            'comments': 'Notify me when someone comments on my post',
-        }
 
 
 class PrivacySettingsForm(forms.ModelForm):

@@ -1,10 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.core.files.storage import default_storage
 from PIL import Image
 from io import BytesIO
-import os
 
 User = get_user_model()
 

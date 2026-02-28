@@ -30,9 +30,9 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
     def get_avatar(self, obj):
         try:
-            if obj.avatar:
+            if obj.avatar and obj.avatar.name:
                 return obj.avatar.url
-        except:
+        except (AttributeError, FileNotFoundError, ValueError):
             pass
         return avatar_data_uri(obj.username, size=80)
 
@@ -144,9 +144,9 @@ class ConversationSerializer(serializers.ModelSerializer):
             if other_users.exists():
                 other_user = other_users.first()
                 try:
-                    if other_user.avatar:
+                    if other_user.avatar and other_user.avatar.name:
                         return other_user.avatar.url
-                except:
+                except (AttributeError, FileNotFoundError, ValueError):
                     pass
 
         return avatar_data_uri(other_user.username if other_user else None, size=80)

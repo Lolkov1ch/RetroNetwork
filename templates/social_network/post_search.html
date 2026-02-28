@@ -36,6 +36,20 @@
           <div style="color: var(--text-main); line-height: 1.5; font-size: 13px;">
             {{ post.content|truncatewords:60 }}
           </div>
+
+          {% if post.thumbnail_url %}
+            <div style="margin-top: 10px; border-radius: 4px; overflow: hidden; max-height: 300px; background: var(--border-color);">
+              <img src="/media/{{ post.thumbnail_url }}" alt="Post thumbnail" style="width: 100%; height: auto; max-height: 300px; object-fit: cover;">
+            </div>
+          {% elif post.images or post.videos %}
+            <div style="margin-top: 10px; border-radius: 4px; overflow: hidden; max-height: 300px; background: var(--border-color);">
+              {% if post.images %}
+                <img src="{{ post.images.0.file.url }}" alt="Post image" style="width: 100%; height: auto; max-height: 300px; object-fit: cover;">
+              {% elif post.videos %}
+                <video controls style="width: 100%; max-height: 300px;"><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+              {% endif %}
+            </div>
+          {% endif %}
         </div>
 
         <div style="padding: 8px 12px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; font-size: 12px; color: #65676b;">

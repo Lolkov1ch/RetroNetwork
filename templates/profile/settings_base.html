@@ -16,9 +16,6 @@
         <a href="{% url 'user_settings:change_password' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'change_password' %}active{% endif %}">
           🔑 Change Password
         </a>
-        <a href="{% url 'user_settings:notification_settings' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">
-          🔔 Notifications
-        </a>
         <a href="{% url 'user_settings:privacy_settings' %}" class="settings-nav-item {% if request.resolver_match.url_name == 'privacy_settings' %}active{% endif %}">
           🔒 Privacy
         </a>

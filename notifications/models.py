@@ -5,7 +5,6 @@ User = get_user_model()
 
 
 class Notification(models.Model):
-    """Model for storing notifications"""
     NOTIFICATION_TYPES = [
         ('message', 'New Message'),
         ('mention', 'Mention'),

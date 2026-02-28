@@ -1,7 +1,9 @@
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class EmailBackend(ModelBackend):
@@ -22,11 +24,14 @@ class EmailBackend(ModelBackend):
             try:
                 user = User.objects.get(handle=username)
             except User.DoesNotExist:
+                logger.debug(f'Authentication attempt with non-existent identifier: {username}')
                 return None
 
         if user is not None and user.check_password(password) and self.user_can_authenticate(user):
+            logger.info(f'User authenticated: {user.handle or user.username}')
             return user
         
+        logger.warning(f'Failed authentication attempt for user: {username}')
         return None
     
     def get_user(self, user_id):
