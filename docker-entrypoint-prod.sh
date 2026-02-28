@@ -15,25 +15,34 @@ echo "✅ DATABASE_URL is configured"
 # Retry logic for database migrations
 MAX_RETRIES=5
 RETRY_DELAY=3
-ATTEMPT=1
 
-while [ $ATTEMPT -le $MAX_RETRIES ]; do
-    echo ""
-    echo "Migration attempt $ATTEMPT/$MAX_RETRIES"
-    if python manage.py migrate --noinput --verbosity 2; then
-        echo "✅ Migrations completed successfully"
-        break
-    else
-        if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-            echo "⚠️  Migration failed, waiting $RETRY_DELAY seconds before retry..."
+run_migration_step () {
+    local label="$1"
+    shift
+    local attempt=1
+
+    while [ $attempt -le $MAX_RETRIES ]; do
+        echo ""
+        echo "$label — attempt $attempt/$MAX_RETRIES"
+        if python manage.py "$@"; then
+            echo "✅ $label succeeded"
+            return 0
+        fi
+
+        if [ $attempt -lt $MAX_RETRIES ]; then
+            echo "⚠️  $label failed, waiting $RETRY_DELAY seconds before retry..."
             sleep $RETRY_DELAY
         else
-            echo "❌ Migrations failed after $MAX_RETRIES attempts"
-            exit 1
+            echo "❌ $label failed after $MAX_RETRIES attempts"
+            return 1
         fi
-    fi
-    ATTEMPT=$((ATTEMPT + 1))
-done
+
+        attempt=$((attempt + 1))
+    done
+}
+
+run_migration_step "Users migrations" migrate users --noinput --verbosity 
+run_migration_step "All migrations" migrate --noinput --verbosity 2
 
 echo ""
 echo "Collecting static files..."
