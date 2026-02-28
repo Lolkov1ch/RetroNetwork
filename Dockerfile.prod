@@ -16,11 +16,7 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
-    postgresql-15 \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create PostgreSQL data directory
+        postgresql \
 RUN mkdir -p /var/lib/postgresql/data && \
     chmod 700 /var/lib/postgresql/data
 
