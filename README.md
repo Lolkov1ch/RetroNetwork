@@ -1,43 +1,51 @@
-# RetroNetwork
+# RetroNetwork 🌐
 
-A classic social network application built with Django, Django REST Framework, and Django Channels for real-time messaging.
+A modern, feature-rich social network application built with Django, Django REST Framework, and Django Channels for real-time WebSocket communication. Fully containerized and deployable to Render.com.
 
-## Features
+## ✨ Features
 
-- 👥 **User Profiles**: Customizable profiles with status, bio, and avatars
-- 📝 **Posts & Comments**: Create and interact with posts and comments
-- ❤️ **Reactions**: Like posts and leave reactions on messages
-- 💬 **Real-time Messaging**: WebSocket-based instant messaging with typing indicators
-- 🔔 **Notifications**: Real-time notifications for interactions
-- 🔒 **Privacy Controls**: Block users, manage followers, customize privacy settings
-- 📎 **Media Handling**: Support for images, videos, and documents
-- 🔍 **Search**: Search posts and users
-- 🌓 **Dark Theme**: Built-in dark theme support
+- **👥 User Profiles** — Customizable profiles with bio, avatar, cover image, and status
+- **📝 Posts & Comments** — Create posts, comment, edit, and delete with rich text support
+- **❤️ Reactions** — Like posts, react to messages with emoji
+- **💬 Real-time Messaging** — WebSocket-based instant messaging with typing indicators and presence
+- **🔔 Notifications** — Real-time notifications for follows, likes, comments, and messages
+- **🔒 Privacy & Security** — Block/unblock users, followers/following management, privacy settings
+- **📎 Media Handling** — Upload images, videos, and documents with validation
+- **🔍 Search** — Full-text search for posts and users
+- **🌓 Dark Theme** — Built-in light and dark theme support
+- **🔐 Authentication** — Email, username, or handle login with custom backend
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Backend**: Django 6.0.2
-- **API**: Django REST Framework 3.16.1
-- **Real-time**: Django Channels 4.3.2 with WebSockets
-- **Database**: PostgreSQL (with SQLite fallback for development)
-- **Caching/Messaging**: Redis
-- **Media Processing**: Pillow
-- **ASGI Server**: Daphne
+| Component | Technology |
+|-----------|-----------|
+| **Backend** | Django 6.0.2 |
+| **API** | Django REST Framework 3.16.1 |
+| **Real-time** | Django Channels 4.3.2 + WebSockets |
+| **Database** | PostgreSQL 17 (Render managed or local) |
+| **Cache/Messaging** | Redis 7 |
+| **ASGI Server** | Daphne 4.2.1 |
+| **Web Server** | Gunicorn 25.1.0 (production) |
+| **Media** | Pillow 12.1.0 |
+| **Static Files** | Whitenoise 6.12.0 |
 
-## Quick Start
+## 🚀 Quick Start
 
-### Development Setup
+### Local Development (with PostgreSQL & Redis)
 
-1. **Clone the repository**
+1. **Clone and navigate**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Lolkov1ch/RetroNetwork.git
    cd RetroNetwork
    ```
 
-2. **Create virtual environment**
+2. **Create Python virtual environment**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   # Windows
+   .\venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
    ```
 
 3. **Install dependencies**
@@ -45,10 +53,10 @@ A classic social network application built with Django, Django REST Framework, a
    pip install -r requirements.txt
    ```
 
-4. **Setup environment**
+4. **Setup environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your settings
+   # Edit .env and set your SECRET_KEY and DATABASE_URL
    ```
 
 5. **Run migrations**
@@ -61,193 +69,258 @@ A classic social network application built with Django, Django REST Framework, a
    python manage.py createsuperuser
    ```
 
-7. **Run development server**
+7. **Start development server**
    ```bash
    python manage.py runserver
    ```
+   App available at `http://localhost:8000` — Admin at `http://localhost:8000/admin/`
 
-   The application will be available at `http://localhost:8000`
+### Local Development with Docker Compose
 
-### Docker Setup
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Lolkov1ch/RetroNetwork.git
+   cd RetroNetwork
+   ```
 
+2. **Create `.env` file**
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Start all services** (PostgreSQL, Redis, Django app)
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Create superuser**
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+5. **Access the app**
+   - Application: `http://localhost:8000`
+   - Admin panel: `http://localhost:8000/admin/`
+   - Postgres: `localhost:5432` (user: `postgres`, password: `dev_password`)
+   - Redis: `localhost:6379`
+
+**Stop services:**
 ```bash
-docker-compose up -d
+docker-compose down
 ```
 
-Access the application at `http://localhost:8000`
+## 📦 Deployment to Render.com
 
-## Project Structure
+### Prerequisites
+- Render.com account (free tier available)
+- GitHub repository with code pushed
+- PostgreSQL add-on on Render (recommended: paid tier for reliability)
+
+### Deployment Steps
+
+1. **Push code to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Create Web Service on Render**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Select `RetroNetwork`
+   - Set environment to **Docker**
+   - Choose a region (Frankfurt recommended for EU)
+   - Select **Free** plan (or Paid for better performance)
+
+3. **Create PostgreSQL Database** (if not using Render managed service)
+   - New PostgreSQL instance on Render
+   - Note the `DATABASE_URL`
+
+4. **Add Environment Variables** in Render Web Service settings:
+   ```
+   SECRET_KEY        = [auto-generated by Render]
+   DEBUG             = False
+   ALLOWED_HOSTS     = your-service-name.onrender.com
+   DATABASE_URL      = [your PostgreSQL connection string]
+   REDIS_URL         = [optional: redis://:password@host:port]
+   ```
+
+5. **Deploy**
+   - Render automatically builds from `Dockerfile.prod`
+   - Migrations run automatically on startup
+   - Service health checks enabled
+
+6. **Post-Deployment**
+   - Access your app: `https://your-service-name.onrender.com`
+   - Check logs in Render dashboard if issues occur
+   - Create superuser via Render shell:
+     ```bash
+     # In Render dashboard, open "Shell" and run:
+     python manage.py createsuperuser
+     ```
+
+## 📁 Project Structure
 
 ```
 RetroNetwork/
-├── users/              # User authentication and profiles
-├── posts/              # Posts and post management
-├── comments/           # Comments on posts
-├── reactions/          # Likes and reactions
-├── messaging/          # Real-time messaging
-├── notifications/      # Notification system
-├── user_settings/      # User settings and privacy
-├── attachments/        # File upload handling
-├── social_core/        # Project configuration
-├── templates/          # HTML templates
-├── static/             # CSS, JavaScript, images
-└── media/              # User uploaded files
+├── social_core/              # Main Django project settings
+│   ├── settings.py          # Configuration (DB, installed apps, middleware)
+│   ├── asgi.py              # ASGI config for Channels
+│   ├── wsgi.py              # WSGI config for Gunicorn
+│   └── urls.py              # Main URL routing
+│
+├── users/                   # User authentication & profiles
+│   ├── models.py            # User, Follow, Block models
+│   ├── views.py             # Profile views
+│   ├── backends.py          # Custom auth backend
+│   └── forms.py             # User forms
+│
+├── posts/                   # Posts & content management
+│   ├── models.py            # Post model
+│   ├── views.py             # Post CRUD views
+│   ├── signals.py           # Auto-update signals
+│   └── utils.py             # Thumbnail generation
+│
+├── comments/                # Comments on posts
+│   ├── models.py            # Comment model
+│   ├── views.py             # Comment views
+│   └── signals.py           # Notifications
+│
+├── reactions/               # Likes & reactions
+│   ├── models.py            # Reaction model
+│   └── views.py             # Reaction endpoints
+│
+├── messaging/               # WebSocket messaging
+│   ├── consumers.py         # WebSocket consumer (Channels)
+│   ├── models.py            # Message, Conversation models
+│   ├── routing.py           # WebSocket routing
+│   ├── serializers.py       # DRF serializers
+│   └── views.py             # REST API views
+│
+├── notifications/           # Real-time notifications
+│   ├── models.py            # Notification model
+│   ├── signals.py           # Signal handlers
+│   └── context_processors.py
+│
+├── attachments/             # File uploads
+│   ├── models.py            # Media model
+│   ├── validators.py        # File type & size validation
+│   └── storage_paths.py     # Upload paths
+│
+├── user_settings/           # User preferences
+│   ├── models.py            # Privacy, theme settings
+│   └── views.py             # Settings views
+│
+├── templates/               # HTML templates
+│   ├── base.html            # Base template
+│   ├── social_network/      # Post/feed templates
+│   ├── users/               # Profile templates
+│   └── messenger/           # Messaging templates
+│
+├── static/                  # CSS, JS, images
+│   ├── css/
+│   ├── js/
+│   └── img/
+│
+├── Dockerfile               # Development image
+├── Dockerfile.prod          # Production image (for Render)
+├── docker-compose.yml       # Local dev orchestration
+├── docker-compose.prod.yml  # Production orchestration
+├── docker-entrypoint.sh     # Dev entrypoint
+├── docker-entrypoint-prod.sh # Prod entrypoint (migrations, static)
+├── requirements.txt         # Python dependencies
+├── .env.example             # Environment template
+├── render.yaml              # Render deployment config
+└── manage.py                # Django CLI
 ```
 
-## Configuration
+## 🔐 Security Features
 
-### Environment Variables
+- **Custom Authentication** — Supports email, username, or handle login
+- **Password Validation** — Complexity checks, similarity validation
+- **File Upload Validation** — Extension, MIME type, and size checks
+- **CORS Protection** — Configured allowed origins
+- **CSRF Protection** — Enabled by default
+- **WebSocket Security** — Token authentication for real-time connections
+- **Non-root Container** — Runs as `appuser` (UID 1000)
+- **HSTS & Secure Cookies** — Configurable for production
 
-See `.env.example` for all available configuration options.
+## 📝 Environment Variables
 
-Key variables:
-- `SECRET_KEY`: Django secret key (generate new one for production)
-- `DEBUG`: Debug mode (False for production)
-- `ALLOWED_HOSTS`: Allowed host domains
-- `DATABASE_URL`: Database connection string
-- `REDIS_HOST`: Redis server host
+See `.env.example` for all available variables:
 
-### Security
+```bash
+SECRET_KEY              # Django secret key (auto-generated on Render)
+DEBUG                   # Debug mode (True for dev, False for prod)
+ALLOWED_HOSTS           # Comma-separated allowed domains
+DATABASE_URL            # PostgreSQL connection string
+REDIS_HOST              # Redis host (default: localhost)
+REDIS_PORT              # Redis port (default: 6379)
+CHANNEL_BACKEND         # Channels backend (InMemory or Redis)
+SECURE_SSL_REDIRECT     # Enforce HTTPS
+CSRF_COOKIE_SECURE      # Secure CSRF cookies
+SESSION_COOKIE_SECURE   # Secure session cookies
+```
 
-**IMPORTANT**: See [SECURITY.md](SECURITY.md) for production deployment security guidelines.
+## 🧪 Development
 
-## API Endpoints
-
-### Authentication
-- `POST /accounts/login/` - User login
-- `POST /accounts/logout/` - User logout
-- `POST /accounts/register/` - User registration
-
-### Users
-- `GET /accounts/<handle>/` - View user profile
-- `GET /accounts/search/` - Search users
-- `POST /accounts/<handle>/follow/` - Follow user
-
-### Posts
-- `GET /` - List posts
-- `POST /` - Create post
-- `GET /<id>/` - View post detail
-- `PUT /<id>/` - Update post
-- `DELETE /<id>/` - Delete post
-
-### Messaging
-- `GET /api/messages/` - List conversations
-- `POST /api/messages/` - Create conversation
-- `GET /api/messages/<id>/` - Get messages in conversation
-
-### WebSocket
-- `ws://localhost:8000/ws/chat/<conversation_id>/` - Real-time messaging
-
-## File Upload Validation
-
-Files are validated by:
-1. Extension checking
-2. MIME type verification
-3. File size limits
-
-Supported formats:
-- **Images**: JPG, PNG, GIF, WebP, SVG (max 25MB)
-- **Videos**: MP4, WebM, AVI, MOV, MKV (max 500MB)
-- **Audio**: MP3, WAV, M4A, OGG (max 100MB)
-- **Documents**: PDF, DOC, DOCX, TXT, XLS, XLSX (max 50MB)
-
-## Rate Limiting
-
-API rate limits:
-- Anonymous users: 100 requests/hour
-- Authenticated users: 1000 requests/hour
-
-## Database Models
-
-### User
-- Profile information (handle, display name, bio)
-- Avatar and status
-- Privacy settings
-
-### Post
-- Content and media
-- View count
-- Timestamps
-
-### Comment
-- Author and content
-- Associated post
-- Timestamps
-
-### Message
-- Real-time messaging
-- Multiple file types
-- Read receipts
-
-### Conversation
-- Group or direct messaging
-- Participant management
-- Message history
-
-## Testing
-
-Run tests:
+### Running Tests
 ```bash
 python manage.py test
 ```
 
-Run specific app tests:
-```bash
-python manage.py test users
-```
-
-## Populating Test Data
-
-Generate test data to quickly populate your database for development and testing:
-
-### Create Test Posts
+### Creating Test Data
 ```bash
 python manage.py create_test_posts
-```
-Creates sample posts with various content and media types for all users in the system.
-
-### Create Test Messages
-```bash
 python manage.py create_test_messages
 ```
-Creates sample conversations and messages between users for testing the messaging system.
 
-## Logging
+### Collecting Static Files (local)
+```bash
+python manage.py collectstatic --noinput
+```
 
-Logs are configured in `settings.py`:
-- **Console output**: INFO level
-- **File logs**: `logs/django.log` (ERROR level)
-- **Rotating handler**: 10MB max file size, 10 backups
+## 📊 Database Migrations
 
-## Performance Optimization
+Create new migration:
+```bash
+python manage.py makemigrations
+```
 
-- Database query optimization with `select_related()` and `prefetch_related()`
-- Indexed database fields
-- Redis caching for WebSockets
-- Media file size limits and validation
-- Pagination for list views
+Apply migrations:
+```bash
+python manage.py migrate
+```
 
-## Contributing
+## 🐛 Troubleshooting
 
-1. Create a feature branch
-2. Make your changes
-3. Ensure tests pass
-4. Submit a pull request
+### Build fails on Render
+- Check that `DATABASE_URL` is set in environment variables
+- Ensure the PostgreSQL database is running
+- Review logs in Render dashboard
 
-## License
+### WebSocket connection fails
+- Ensure Redis is available (set `REDIS_URL` for production)
+- Check that `CHANNEL_BACKEND` is set correctly
+- Verify firewall/network allows WebSocket connections
 
-MIT License - See [LICENSE](LICENSE) file for details
+### Static files not serving
+- Run `python manage.py collectstatic`
+- Ensure Whitenoise is configured in settings
+- Check file permissions in container
 
-## Support
+### Migration timeout
+- Increase the `timeout` in docker-entrypoint-prod.sh
+- Check database performance and connection
 
-For issues and questions, please open an issue on the repository.
+## 📄 License
 
-## Roadmap
+MIT License — See [LICENSE](LICENSE) file
 
-- [ ] Two-factor authentication
-- [ ] User blocking improvements
-- [ ] Message encryption
-- [ ] Video call support
-- [ ] Group chat features
-- [ ] User analytics dashboard
-- [ ] Content moderation tools
+## 👤 Author
+
+Created by [Lolkov1ch](https://github.com/Lolkov1ch)
+
+---
+
+**For more info:** See [SECURITY.md](SECURITY.md) for deployment best practices
