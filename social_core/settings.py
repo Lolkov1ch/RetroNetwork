@@ -119,7 +119,8 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 
 # Support Docker (DATABASE_URL env var), local PostgreSQL, or SQLite fallback
 if 'DATABASE_URL' in os.environ:
-    # Docker: use DATABASE_URL environment variable
+    # Production (Render): use DATABASE_URL environment variable for PostgreSQL
+    import dj_database_url
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ['DATABASE_URL'],
@@ -137,12 +138,13 @@ else:
             'PASSWORD': 'postgres',
             'HOST': 'localhost',
             'PORT': '5432',
-            'CONN_MAX_AGE': 0,  # Disable connection pooling for SQLite fallback
+            'CONN_MAX_AGE': 0,
         }
     }
     
     # Fallback to SQLite if PostgreSQL is not available
     try:
+        import socket
         import psycopg2
         socket.create_connection(('localhost', 5432), timeout=1)
     except (ImportError, OSError, socket.timeout):
