@@ -119,7 +119,7 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 
 # PostgreSQL configuration for both production and local development
 if 'DATABASE_URL' in os.environ:
-    # Production (Render): use DATABASE_URL environment variable
+    # Production (Render): use DATABASE_URL environment variable if available
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ['DATABASE_URL'],
@@ -129,26 +129,23 @@ if 'DATABASE_URL' in os.environ:
         )
     }
 elif os.environ.get('RENDER') == 'true':
-    # Production on Render: build connection string from internal hostname
-    # Render provides: RENDER_INTERNAL_HOSTNAME and database defaults
-    db_name = os.environ.get('DB_NAME', 'postgres')
-    db_user = os.environ.get('DB_USER', 'postgres')
-    db_password = os.environ.get('DB_PASSWORD', '')
-    db_host = 'retronetwork-db'  # Internal service name
-    db_port = 5432
-    
-    if db_password:
-        DATABASE_URL = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
-    else:
-        DATABASE_URL = f'postgresql://{db_user}@{db_host}:{db_port}/{db_name}'
-    
+    # Production on Render: use internal service name with PostgreSQL defaults
+    # Render provides internal service-to-service networking
     DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            engine='django.db.backends.postgresql'
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': 'postgres',
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', ''),
+            'HOST': 'retronetwork-db',
+            'PORT': 5432,
+            'CONN_MAX_AGE': 600,
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': {
+                'connect_timeout': 10,
+                'options': '-c statement_timeout=30000'
+            }
+        }
     }
 else:
     # Local development: use PostgreSQL with environment variables or defaults
