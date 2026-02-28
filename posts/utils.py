@@ -1,10 +1,13 @@
+# posts/utils.py
 import logging
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.models import ContentType
 
 from attachments.models import Media
 from .forms import PostMediaForm
+from .models import Post
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,7 @@ def handle_media_upload(request, post):
                 post=post,
                 uploader=request.user,
                 file=form.cleaned_data["file"],
-                file_type=file_type, 
+                file_type=file_type,  
             )
         except ValidationError as e:
             messages.error(request, f"{f.name}: {e}")
@@ -52,3 +55,22 @@ def handle_media_upload(request, post):
             logger.warning("Media upload failed for %s", getattr(f, "name", "file"), exc_info=True)
             messages.error(request, f"{getattr(f, 'name', 'file')}: upload failed (invalid/unsupported file).")
             continue
+
+
+def get_post_media(post_id):
+    """Get all media files associated with a post."""
+    post_content_type = ContentType.objects.get_for_model(Post)
+    return Media.objects.filter(
+        content_type=post_content_type,
+        object_id=post_id
+    ).order_by('uploaded_at')
+
+
+def is_image(media):
+    """Check if a media object is an image."""
+    return media.is_image
+
+
+def is_video(media):
+    """Check if a media object is a video."""
+    return media.is_video

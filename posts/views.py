@@ -19,6 +19,21 @@ from posts.thumbnail_utils import generate_post_thumbnail
 User = get_user_model()
 
 
+def _get_any_uploaded_files(request):
+    keys = ["media_files", "images", "videos", "files", "file"]
+    out = []
+    for k in keys:
+        out.extend(request.FILES.getlist(k))
+    seen = set()
+    uniq = []
+    for f in out:
+        fid = id(f)
+        if fid not in seen:
+            seen.add(fid)
+            uniq.append(f)
+    return uniq
+
+
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     template_name = "social_network/post_create.html"
@@ -29,8 +44,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         response = super().form_valid(form)
-        handle_media_upload(self.request, self.object)
 
+        handle_media_upload(self.request, self.object)
         return response
 
 
@@ -122,7 +137,8 @@ class PostImageView(LoginRequiredMixin, View):
             messages.error(request, "You don't have permission.")
             return redirect("posts:post_list")
 
-        if not request.FILES.getlist("images"):
+        files = _get_any_uploaded_files(request)
+        if not files:
             messages.error(request, "No files provided.")
             return redirect("posts:post_list")
 
@@ -199,16 +215,18 @@ class PostAPIView(View):
             post.thumbnail_url = generate_post_thumbnail(post)
             posts_list.append(post)
 
-        html = render_to_string("social_network/post_item.html", {
-            "posts": posts_list,
-            "user": request.user,
-        })
+        html = render_to_string(
+            "social_network/post_item.html",
+            {"posts": posts_list, "user": request.user},
+        )
 
         has_more = end < total_count
 
-        return JsonResponse({
-            "html": html,
-            "has_more": has_more,
-            "page": page,
-            "total_count": total_count,
-        })
+        return JsonResponse(
+            {
+                "html": html,
+                "has_more": has_more,
+                "page": page,
+                "total_count": total_count,
+            }
+        )
