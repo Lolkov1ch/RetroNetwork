@@ -237,11 +237,28 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         message_type = (self.request.data.get("message_type") or "text").strip()
 
+        # Accept common file field names from clients and fall back to first file
         uploaded = self.request.FILES.get("file")
+        if not uploaded:
+            for alt in ("image", "video", "voice", "audio"):
+                uploaded = self.request.FILES.get(alt)
+                if uploaded:
+                    break
+
+        # As a last resort, if any file was uploaded under an unexpected key,
+        # pick the first one so uploads aren't rejected due to field name.
+        if not uploaded and self.request.FILES:
+            try:
+                uploaded = next(iter(self.request.FILES.values()))
+            except Exception:
+                uploaded = None
 
         if message_type in {"image", "video", "voice", "audio"}:
             if not uploaded:
+                logger.warning("Upload attempted without file for message_type=%s; files=%s", message_type, list(self.request.FILES.keys()))
                 raise DRFValidationError({"file": "file is required for this message_type"})
+
+            # Validate using the declared message type (kind)
             _validate_uploaded_file(uploaded, kind=message_type)
             _rewind(uploaded)
 

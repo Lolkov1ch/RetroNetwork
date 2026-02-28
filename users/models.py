@@ -35,7 +35,7 @@ class User(AbstractUser):
     birth_date = models.DateField(null=True, blank=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline')
-    previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='online', help_text="Status before logout")
+    previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline', help_text="Status before logout")
 
     def __str__(self):
         return f"@{self.handle}" if self.handle else self.username
