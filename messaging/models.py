@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from PIL import Image
 from io import BytesIO
+import mimetypes
 
 User = get_user_model()
 
@@ -181,3 +182,90 @@ class MessageReaction(models.Model):
 
     def __str__(self):
         return f"{self.user.display_name} reacted {self.reaction_type} to {self.message}"
+
+
+class MessageAttachment(models.Model):
+    """
+    Represents a photo or video attachment to a message (typically voice messages).
+    Allows a single voice message to have multiple photo/video attachments.
+    """
+    ATTACHMENT_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+    ]
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        db_index=True
+    )
+    attachment_type = models.CharField(
+        max_length=20,
+        choices=ATTACHMENT_TYPE_CHOICES,
+        db_index=True
+    )
+    file = models.FileField(upload_to=get_message_upload_path, db_index=False)
+    thumbnail = models.ImageField(
+        upload_to=get_message_upload_path,
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['message', '-created_at']),
+            models.Index(fields=['attachment_type']),
+        ]
+
+    def __str__(self):
+        return f"Attachment ({self.attachment_type}) for message {self.message.id}"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        if is_new and self.attachment_type == 'image':
+            try:
+                self.generate_thumbnail()
+                self.save(update_fields=['thumbnail'])
+            except Exception as e:
+                print(f"Error generating attachment thumbnail: {e}")
+        elif is_new and self.attachment_type == 'video':
+            try:
+                self.generate_video_thumbnail()
+                self.save(update_fields=['thumbnail'])
+            except Exception as e:
+                print(f"Error generating video attachment thumbnail: {e}")
+
+    def generate_thumbnail(self):
+        """Generate thumbnail for image attachments."""
+        if self.file and self.attachment_type == 'image':
+            try:
+                img = Image.open(self.file)
+                img.thumbnail((200, 200), Image.Resampling.LANCZOS)
+                
+                thumb_io = BytesIO()
+                img.save(thumb_io, format='JPEG', quality=80)
+                thumb_io.seek(0)
+                
+                thumb_name = f"thumb_{self.file.name.split('/')[-1]}"
+                self.thumbnail.save(thumb_name, thumb_io, save=False)
+            except Exception as e:
+                print(f"Error generating image attachment thumbnail: {e}")
+
+    def generate_video_thumbnail(self):
+        """Generate placeholder thumbnail for video attachments."""
+        if self.file and self.attachment_type == 'video' and not self.thumbnail:
+            try:
+                img = Image.new('RGB', (320, 180), color=(52, 91, 165))
+                thumb_io = BytesIO()
+                img.save(thumb_io, format='JPEG', quality=80)
+                thumb_io.seek(0)
+                
+                thumb_name = f"thumb_{self.file.name.split('/')[-1]}.jpg"
+                self.thumbnail.save(thumb_name, thumb_io, save=False)
+            except Exception as e:
+                print(f"Error generating video attachment thumbnail: {e}")

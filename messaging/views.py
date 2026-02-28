@@ -15,8 +15,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 from PIL import Image as PilImage
 
-from .models import Conversation, Message, MessageReaction
-from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer, UserSimpleSerializer
+from .models import Conversation, Message, MessageReaction, MessageAttachment
+from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer, UserSimpleSerializer, MessageAttachmentSerializer
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -244,6 +244,29 @@ class MessageViewSet(viewsets.ModelViewSet):
                 elif message_type == "voice":
                     message.voice = uploaded
                     message.save()
+                    
+                    # Handle additional photo/video attachments with voice messages
+                    attachments = self.request.FILES.getlist("attachments")
+                    for attachment_file in attachments:
+                        attachment_type = self.request.POST.getlist("attachment_types")
+                        if attachment_type:
+                            # Match attachment file with its type
+                            idx = attachments.index(attachment_file)
+                            if idx < len(attachment_type):
+                                att_type = attachment_type[idx]
+                                if att_type in {"image", "video"}:
+                                    _validate_uploaded_file(attachment_file, kind=att_type)
+                                    _rewind(attachment_file)
+                                    
+                                    try:
+                                        attachment = MessageAttachment.objects.create(
+                                            message=message,
+                                            attachment_type=att_type,
+                                            file=attachment_file
+                                        )
+                                    except Exception as e:
+                                        logger.error(f"Failed to create attachment: {e}")
+                                        raise DRFValidationError({"attachments": f"Failed to upload attachment: {attachment_file.name}"})
 
             except DRFValidationError:
                 message.delete()

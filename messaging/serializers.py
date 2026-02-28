@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Conversation, Message, MessageReaction
+from .models import Conversation, Message, MessageReaction, MessageAttachment
 
 User = get_user_model()
 
@@ -45,12 +45,20 @@ class MessageReactionSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'reaction_type', 'created_at']
 
 
+class MessageAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessageAttachment
+        fields = ['id', 'attachment_type', 'file', 'thumbnail', 'created_at']
+        read_only_fields = ['id', 'thumbnail', 'created_at']
+
+
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSimpleSerializer(read_only=True)
     conversation = serializers.PrimaryKeyRelatedField(
         queryset=Conversation.objects.all(), write_only=True, required=False
     )
     reactions = MessageReactionSerializer(many=True, read_only=True)
+    attachments = MessageAttachmentSerializer(many=True, read_only=True)
     is_read = serializers.SerializerMethodField()
     read_count = serializers.SerializerMethodField()
     read = serializers.SerializerMethodField()
@@ -62,11 +70,11 @@ class MessageSerializer(serializers.ModelSerializer):
             'id', 'sender', 'message_type', 'content', 'file', 'image',
             'image_thumbnail', 'video', 'video_thumbnail', 'voice',
             'voice_duration', 'created_at', 'is_edited', 'edited_at',
-            'is_read', 'read_count', 'read', 'reactions'
+            'is_read', 'read_count', 'read', 'reactions', 'attachments'
         ]
         read_only_fields = [
             'id', 'sender', 'created_at', 'image_thumbnail',
-            'video_thumbnail', 'edited_at'
+            'video_thumbnail', 'edited_at', 'attachments'
         ]
 
     def get_is_read(self, obj):

@@ -1,6 +1,6 @@
 # RetroNetwork
 
-A modern, feature-rich social network application built with Django, Django REST Framework, and Django Channels for real-time WebSocket communication. Fully containerized and deployable to Render.com.
+A modern, feature-rich social network application built with Django, Django REST Framework, and Django Channels for real-time WebSocket communication.
 
 ## Features
 

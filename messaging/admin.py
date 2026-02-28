@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count
-from .models import Conversation, Message, MessageReaction
+from .models import Conversation, Message, MessageReaction, MessageAttachment
 
 
 @admin.register(Conversation)
@@ -231,3 +231,70 @@ class MessageReactionAdmin(admin.ModelAdmin):
         preview = obj.message.content[:100] if obj.message.message_type == 'text' else f'({obj.message.get_message_type_display()})'
         return format_html('<em>{}</em>', preview)
     message_info.short_description = 'Message'
+
+
+@admin.register(MessageAttachment)
+class MessageAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'message_link', 'attachment_type_badge', 'file_preview', 'created_at')
+    list_filter = ('attachment_type', 'created_at')
+    search_fields = ('message__id', 'file')
+    readonly_fields = ('created_at', 'message_info', 'preview')
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Attachment Information', {
+            'fields': ('message', 'message_info', 'attachment_type', 'file', 'preview')
+        }),
+        ('Thumbnail', {
+            'fields': ('thumbnail',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def message_link(self, obj):
+        url = reverse('admin:messaging_message_change', args=[obj.message.pk])
+        return format_html('<a href="{}">Message #{}</a>', url, obj.message.pk)
+    message_link.short_description = 'Message'
+    
+    def attachment_type_badge(self, obj):
+        colors = {
+            'image': '#28a745',
+            'video': '#dc3545',
+        }
+        color = colors.get(obj.attachment_type, '#6c757d')
+        emoji = '📷' if obj.attachment_type == 'image' else '🎥'
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 3px;">{} {}</span>',
+            color,
+            emoji,
+            obj.get_attachment_type_display()
+        )
+    attachment_type_badge.short_description = 'Type'
+    
+    def file_preview(self, obj):
+        filename = obj.file.name.split('/')[-1]
+        return format_html('<code>{}</code>', filename)
+    file_preview.short_description = 'File'
+    
+    def preview(self, obj):
+        if obj.attachment_type == 'image' and obj.file:
+            return format_html('<img src="{}" width="300" style="max-height: 300px; border-radius: 4px;"/>', obj.file.url)
+        elif obj.attachment_type == 'video' and obj.thumbnail:
+            return format_html('<img src="{}" width="300" style="max-height: 300px; border-radius: 4px;"/>', obj.thumbnail.url)
+        return '—'
+    preview.short_description = 'Preview'
+    
+    def message_info(self, obj):
+        message_type = obj.message.get_message_type_display()
+        sender = obj.message.sender.display_name
+        return format_html(
+            'Type: <strong>{}</strong><br>Sender: <strong>{}</strong>',
+            message_type,
+            sender
+        )
+    message_info.short_description = 'Message Information'
+
