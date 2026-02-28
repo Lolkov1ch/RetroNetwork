@@ -14,6 +14,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 from PIL import Image as PilImage
 
+from time import timezone
+
 from .models import Conversation, Message, MessageReaction, MessageAttachment
 from .serializers import ConversationSerializer, MessageSerializer, MessageReactionSerializer, UserSimpleSerializer, MessageAttachmentSerializer
 
@@ -101,6 +103,34 @@ class MessengerView(LoginRequiredMixin, TemplateView):
             }
         )
         return context
+    
+    @action(detail=True, methods=["patch"], url_path="edit")
+    def edit(self, request, pk=None):
+        message = self.get_object()
+
+        if message.sender_id != request.user.id:
+            return Response({"detail": "You can edit only your own messages."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if (message.message_type or "text") != "text":
+            return Response({"detail": "Only text messages can be edited."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        content = (request.data.get("content") or "").strip()
+        if not content:
+            raise DRFValidationError({"content": "Content cannot be empty."})
+
+        message.content = content
+
+        if hasattr(message, "is_edited"):
+            message.is_edited = True
+        if hasattr(message, "edited_at"):
+            message.edited_at = timezone.now()
+
+        message.save(update_fields=[f for f in ["content", "is_edited", "edited_at"] if hasattr(message, f)])
+
+        serializer = MessageSerializer(message, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class IsParticipantOrReadOnly(permissions.BasePermission):

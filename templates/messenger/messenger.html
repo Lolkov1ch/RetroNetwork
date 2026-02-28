@@ -773,7 +773,7 @@
 
       if (!messages.some(m => Number(m.id) === Number(msg.id))) {
         messages.push(msg);
-        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        messages.sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
         renderMessages({ keepScroll: true });
       }
 
@@ -816,7 +816,7 @@
 
       if (msg && msg.id && !messages.some(m => Number(m.id) === Number(msg.id))) {
         messages.push(msg);
-        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        messages.sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
         renderMessages({ keepScroll: true });
       }
 
@@ -936,7 +936,7 @@
 
       if (msg && msg.id && !messages.some(m => Number(m.id) === Number(msg.id))) {
         messages.push(msg);
-        messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+        messages.sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
         renderMessages({ keepScroll: true });
       }
 
@@ -971,7 +971,7 @@
 
         if (!messages.some(m => Number(m.id) === Number(messageData.id))) {
           messages.push(messageData);
-          messages.sort((a,b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+          messages.sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
           renderMessages({ keepScroll: true });
         }
 
