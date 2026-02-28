@@ -117,43 +117,31 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Support Docker (DATABASE_URL env var), local PostgreSQL, or SQLite fallback
+# PostgreSQL only - no SQLite fallback
 if 'DATABASE_URL' in os.environ:
-    # Production (Render): use DATABASE_URL environment variable for PostgreSQL
-    import dj_database_url
+    # Production (Render): use DATABASE_URL environment variable
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ['DATABASE_URL'],
             conn_max_age=600,
             conn_health_checks=True,
+            engine='django.db.backends.postgresql'
         )
     }
 else:
-    # Local development: try PostgreSQL first, fall back to SQLite
+    # Local development: use PostgreSQL only
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'retronetwork',
-            'USER': 'postgres',
-            'PASSWORD': 'postgres',
-            'HOST': 'localhost',
-            'PORT': '5432',
-            'CONN_MAX_AGE': 0,
+            'NAME': os.environ.get('DB_NAME', 'retronetwork'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+            'CONN_HEALTH_CHECKS': True,
         }
     }
-    
-    # Fallback to SQLite if PostgreSQL is not available
-    try:
-        import socket
-        import psycopg2
-        socket.create_connection(('localhost', 5432), timeout=1)
-    except (ImportError, OSError, socket.timeout):
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
 
 
 # Password validation
