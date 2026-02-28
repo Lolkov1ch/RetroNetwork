@@ -1,8 +1,8 @@
-# RetroNetwork 🌐
+# RetroNetwork
 
 A modern, feature-rich social network application built with Django, Django REST Framework, and Django Channels for real-time WebSocket communication. Fully containerized and deployable to Render.com.
 
-## ✨ Features
+## Features
 
 - **👥 User Profiles** — Customizable profiles with bio, avatar, cover image, and status
 - **📝 Posts & Comments** — Create posts, comment, edit, and delete with rich text support
@@ -15,21 +15,21 @@ A modern, feature-rich social network application built with Django, Django REST
 - **🌓 Dark Theme** — Built-in light and dark theme support
 - **🔐 Authentication** — Email, username, or handle login with custom backend
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
 | **Backend** | Django 6.0.2 |
 | **API** | Django REST Framework 3.16.1 |
 | **Real-time** | Django Channels 4.3.2 + WebSockets |
-| **Database** | PostgreSQL 17 (Render managed or local) |
+| **Database** | PostgreSQL 18 (Render managed or local) |
 | **Cache/Messaging** | Redis 7 |
 | **ASGI Server** | Daphne 4.2.1 |
 | **Web Server** | Gunicorn 25.1.0 (production) |
 | **Media** | Pillow 12.1.0 |
 | **Static Files** | Whitenoise 6.12.0 |
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Local Development (with PostgreSQL & Redis)
 
@@ -109,7 +109,7 @@ A modern, feature-rich social network application built with Django, Django REST
 docker-compose down
 ```
 
-## 📦 Deployment to Render.com
+## Deployment to Render.com
 
 ### Prerequisites
 - Render.com account (free tier available)
@@ -159,7 +159,7 @@ docker-compose down
      python manage.py createsuperuser
      ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 RetroNetwork/
@@ -234,7 +234,7 @@ RetroNetwork/
 └── manage.py                # Django CLI
 ```
 
-## 🔐 Security Features
+## Security Features
 
 - **Custom Authentication** — Supports email, username, or handle login
 - **Password Validation** — Complexity checks, similarity validation
@@ -245,7 +245,7 @@ RetroNetwork/
 - **Non-root Container** — Runs as `appuser` (UID 1000)
 - **HSTS & Secure Cookies** — Configurable for production
 
-## 📝 Environment Variables
+## Environment Variables
 
 See `.env.example` for all available variables:
 
@@ -262,7 +262,7 @@ CSRF_COOKIE_SECURE      # Secure CSRF cookies
 SESSION_COOKIE_SECURE   # Secure session cookies
 ```
 
-## 🧪 Development
+## Development
 
 ### Running Tests
 ```bash
@@ -280,7 +280,7 @@ python manage.py create_test_messages
 python manage.py collectstatic --noinput
 ```
 
-## 📊 Database Migrations
+## Database Migrations
 
 Create new migration:
 ```bash
@@ -292,7 +292,7 @@ Apply migrations:
 python manage.py migrate
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Build fails on Render
 - Check that `DATABASE_URL` is set in environment variables
@@ -313,14 +313,8 @@ python manage.py migrate
 - Increase the `timeout` in docker-entrypoint-prod.sh
 - Check database performance and connection
 
-## 📄 License
+## License
 
 MIT License — See [LICENSE](LICENSE) file
-
-## 👤 Author
-
-Created by [Lolkov1ch](https://github.com/Lolkov1ch)
-
----
 
 **For more info:** See [SECURITY.md](SECURITY.md) for deployment best practices
