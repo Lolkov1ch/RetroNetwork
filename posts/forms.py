@@ -1,3 +1,4 @@
+# posts/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
 from PIL import Image as PilImage
@@ -5,7 +6,18 @@ from PIL import Image as PilImage
 from attachments.models import Media
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"}
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}  # mov = quicktime
+
+MAX_IMAGE_SIZE = 15 * 1024 * 1024   # 15MB
+MAX_VIDEO_SIZE = 200 * 1024 * 1024  # 200MB
+
+
+def _rewind(f):
+    try:
+        f.seek(0)
+    except Exception:
+        pass
+
 
 class PostMediaForm(forms.ModelForm):
     class Meta:
@@ -17,25 +29,32 @@ class PostMediaForm(forms.ModelForm):
         if not f:
             return f
 
-        content_type = getattr(f, "content_type", "") or ""
+        ct = (getattr(f, "content_type", "") or "").lower().strip()
 
-        if content_type.startswith("image/"):
-            if content_type not in ALLOWED_IMAGE_TYPES:
-                raise ValidationError(f"{f.name}: Unsupported image type ({content_type}).")
+        # size guard
+        if ct.startswith("image/") and f.size > MAX_IMAGE_SIZE:
+            raise ValidationError(f"{f.name}: image is too large.")
+        if ct.startswith("video/") and f.size > MAX_VIDEO_SIZE:
+            raise ValidationError(f"{f.name}: video is too large.")
 
+        if ct.startswith("image/"):
+            if ct not in ALLOWED_IMAGE_TYPES:
+                raise ValidationError(f"{f.name}: Unsupported image type ({ct}).")
             try:
-                f.seek(0)
+                _rewind(f)
                 img = PilImage.open(f)
-                img.verify()  
+                img.verify()
             except Exception:
                 raise ValidationError(f"{f.name}: Invalid image file.")
-            f.seek(0)
+            finally:
+                _rewind(f)
 
-        elif content_type.startswith("video/"):
-            if content_type not in ALLOWED_VIDEO_TYPES:
-                raise ValidationError(f"{f.name}: Unsupported video type ({content_type}).")
+        elif ct.startswith("video/"):
+            if ct not in ALLOWED_VIDEO_TYPES:
+                raise ValidationError(f"{f.name}: Unsupported video type ({ct}).")
+            _rewind(f)
 
         else:
-            raise ValidationError(f"{f.name}: File must be an image or video.")
+            raise ValidationError(f"{f.name}: File must be an image or a video.")
 
         return f
