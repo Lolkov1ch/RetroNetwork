@@ -4,8 +4,10 @@ from django.utils import timezone
 from PIL import Image
 from io import BytesIO
 import mimetypes
+import logging
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def get_message_upload_path(instance, filename):
@@ -232,13 +234,13 @@ class MessageAttachment(models.Model):
                 self.generate_thumbnail()
                 self.save(update_fields=['thumbnail'])
             except Exception as e:
-                print(f"Error generating attachment thumbnail: {e}")
+                logger.warning(f"Error generating attachment thumbnail: {e}", exc_info=True)
         elif is_new and self.attachment_type == 'video':
             try:
                 self.generate_video_thumbnail()
                 self.save(update_fields=['thumbnail'])
             except Exception as e:
-                print(f"Error generating video attachment thumbnail: {e}")
+                logger.warning(f"Error generating video attachment thumbnail: {e}", exc_info=True)
 
     def generate_thumbnail(self):
         """Generate thumbnail for image attachments."""
@@ -254,7 +256,7 @@ class MessageAttachment(models.Model):
                 thumb_name = f"thumb_{self.file.name.split('/')[-1]}"
                 self.thumbnail.save(thumb_name, thumb_io, save=False)
             except Exception as e:
-                print(f"Error generating image attachment thumbnail: {e}")
+                logger.warning(f"Error generating image attachment thumbnail: {e}", exc_info=True)
 
     def generate_video_thumbnail(self):
         """Generate placeholder thumbnail for video attachments."""
@@ -268,4 +270,4 @@ class MessageAttachment(models.Model):
                 thumb_name = f"thumb_{self.file.name.split('/')[-1]}.jpg"
                 self.thumbnail.save(thumb_name, thumb_io, save=False)
             except Exception as e:
-                print(f"Error generating video attachment thumbnail: {e}")
+                logger.warning(f"Error generating video attachment thumbnail: {e}", exc_info=True)

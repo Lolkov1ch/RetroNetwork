@@ -246,27 +246,30 @@ class MessageViewSet(viewsets.ModelViewSet):
                     message.save()
                     
                     # Handle additional photo/video attachments with voice messages
-                    attachments = self.request.FILES.getlist("attachments")
-                    for attachment_file in attachments:
-                        attachment_type = self.request.POST.getlist("attachment_types")
-                        if attachment_type:
-                            # Match attachment file with its type
-                            idx = attachments.index(attachment_file)
-                            if idx < len(attachment_type):
-                                att_type = attachment_type[idx]
+                    attachments_files = self.request.FILES.getlist("attachments")
+                    attachment_types = self.request.POST.getlist("attachment_types")
+                    
+                    if attachments_files and attachment_types:
+                        for idx, attachment_file in enumerate(attachments_files):
+                            if idx < len(attachment_types):
+                                att_type = attachment_types[idx]
                                 if att_type in {"image", "video"}:
-                                    _validate_uploaded_file(attachment_file, kind=att_type)
-                                    _rewind(attachment_file)
-                                    
                                     try:
+                                        _validate_uploaded_file(attachment_file, kind=att_type)
+                                        _rewind(attachment_file)
+                                        
                                         attachment = MessageAttachment.objects.create(
                                             message=message,
                                             attachment_type=att_type,
                                             file=attachment_file
                                         )
+                                    except DRFValidationError:
+                                        logger.error(f"Attachment validation failed for {attachment_file.name}", exc_info=True)
+                                        raise
                                     except Exception as e:
-                                        logger.error(f"Failed to create attachment: {e}")
+                                        logger.error(f"Failed to create attachment: {e}", exc_info=True)
                                         raise DRFValidationError({"attachments": f"Failed to upload attachment: {attachment_file.name}"})
+
 
             except DRFValidationError:
                 message.delete()
