@@ -12,7 +12,7 @@ echo "Waiting for PostgreSQL to be ready..."
 max_attempts=60
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
-    if sudo -u postgres psql -c "SELECT 1" >/dev/null 2>&1; then
+    if pg_isready -h localhost -U postgres >/dev/null 2>&1; then
         echo "✓ PostgreSQL is ready!"
         break
     fi
@@ -29,7 +29,8 @@ fi
 
 # Create django database if it doesn't exist
 echo "Ensuring PostgreSQL database exists..."
-sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'django'" | grep -q 1 || sudo -u postgres createdb django
+PGPASSWORD="" psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'django'" 2>/dev/null | grep -q 1 || \
+PGPASSWORD="" psql -h localhost -U postgres -c "CREATE DATABASE django" 2>/dev/null || true
 
 # Run migrations
 echo "Running Django database migrations..."
