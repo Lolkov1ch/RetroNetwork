@@ -2,27 +2,45 @@
 set -e
 
 echo "=== Django Production Deployment ==="
-echo "Environment: RENDER=${RENDER:-false}"
-echo "DATABASE_URL is set: $([ -n "$DATABASE_URL" ] && echo "YES" || echo "NO")"
+echo "RENDER environment: ${RENDER:-false}"
 
-# Wait for database to be available with retries
 if [ "$RENDER" = "true" ]; then
-    echo "Detected Render environment - waiting for PostgreSQL..."
-    sleep 15  # Give Render services time to initialize
+    echo "Waiting for PostgreSQL to initialize..."
+    
+    # Use pg_isready if available, otherwise use psql
+    if command -v pg_isready &> /dev/null; then
+        echo "Using pg_isready to check database..."
+        max_attempts=120
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+            if pg_isready -h localhost -p 5432 -U postgres 2>/dev/null; then
+                echo "✓ PostgreSQL is ready!"
+                break
+            fi
+            attempt=$((attempt + 1))
+            if [ $((attempt % 20)) -eq 0 ]; then
+                echo "Still waiting for PostgreSQL ($attempt/$max_attempts)..."
+            fi
+            sleep 1
+        done
+    else
+        echo "pg_isready not available, using basic wait..."
+        sleep 30
+    fi
 fi
 
-# Run migrations with automatic retries
-echo "Running Django database migrations..."
-max_migrations_retries=5
+echo "Attempting to create database tables..."
+max_migrations_retries=10
 migration_attempt=0
 
 while [ $migration_attempt -lt $max_migrations_retries ]; do
-    echo "Migration attempt $((migration_attempt + 1))/$max_migrations_retries"
+    migration_attempt=$((migration_attempt + 1))
+    echo "Migration attempt $migration_attempt/$max_migrations_retries"
+    
     if python manage.py migrate --noinput --verbosity 2; then
         echo "✓ Migrations completed successfully"
         break
     else
-        migration_attempt=$((migration_attempt + 1))
         if [ $migration_attempt -lt $max_migrations_retries ]; then
             echo "Migration failed, waiting 5 seconds before retry..."
             sleep 5
@@ -37,7 +55,7 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear --verbosity 1
 
 echo "✓ Deployment initialization complete"
-echo "Starting Gunicorn server on 0.0.0.0:8000"
+echo "Starting Gunicorn server..."
 exec gunicorn social_core.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 3 \

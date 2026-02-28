@@ -4,8 +4,6 @@ services:
     runtime: postgresql15
     plan: free
     region: frankfurt
-    databaseName: postgres
-    user: postgres
   
   - type: web
     name: retronetwork
@@ -22,11 +20,6 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: 'retronetwork.onrender.com'
-      - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: retronetwork-db
-          property: connectionString
     autoDeploy: true
     depends_on:
       - retronetwork-db
