@@ -12,11 +12,10 @@ fi
 
 echo "✅ DATABASE_URL is configured"
 
-# Retry logic for database migrations
 MAX_RETRIES=5
 RETRY_DELAY=3
 
-run_migration_step () {
+run_step () {
     local label="$1"
     shift
     local attempt=1
@@ -41,12 +40,15 @@ run_migration_step () {
     done
 }
 
-run_migration_step "Users migrations" migrate users --noinput --verbosity 
-run_migration_step "All migrations" migrate --noinput --verbosity 2
+# Users first (note: use -v 2)
+run_step "Users migrations" migrate users --noinput -v 2
+
+# Then everything else
+run_step "All migrations" migrate --noinput -v 2
 
 echo ""
 echo "Collecting static files..."
-python manage.py collectstatic --noinput --clear --verbosity 1
+python manage.py collectstatic --noinput --clear -v 1
 
 echo ""
 echo "=== Starting Gunicorn ==="
