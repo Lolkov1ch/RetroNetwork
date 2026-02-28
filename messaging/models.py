@@ -148,15 +148,22 @@ class Message(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-        super().save(*args, **kwargs)
         
+        # Generate thumbnails BEFORE saving (so files are ready for Cloudinary)
         if is_new:
-            if self.message_type == 'image':
-                self.generate_image_thumbnail()
-                self.save(update_fields=['image_thumbnail'])
-            elif self.message_type == 'video':
-                self.generate_video_thumbnail()
-                self.save(update_fields=['video_thumbnail'])
+            if self.message_type == 'image' and self.image:
+                try:
+                    self.generate_image_thumbnail()
+                except Exception as e:
+                    logger.warning(f"Failed to generate image thumbnail: {e}", exc_info=True)
+            elif self.message_type == 'video' and self.video:
+                try:
+                    self.generate_video_thumbnail()
+                except Exception as e:
+                    logger.warning(f"Failed to generate video thumbnail: {e}", exc_info=True)
+        
+        # Now save with all prepared fields
+        super().save(*args, **kwargs)
 
 
 class MessageReaction(models.Model):
@@ -187,10 +194,6 @@ class MessageReaction(models.Model):
 
 
 class MessageAttachment(models.Model):
-    """
-    Represents a photo or video attachment to a message (typically voice messages).
-    Allows a single voice message to have multiple photo/video attachments.
-    """
     ATTACHMENT_TYPE_CHOICES = [
         ('image', 'Image'),
         ('video', 'Video'),

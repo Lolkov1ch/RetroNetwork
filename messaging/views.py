@@ -1,4 +1,3 @@
-# messaging/views.py
 import json
 import logging
 
@@ -21,7 +20,6 @@ from .serializers import ConversationSerializer, MessageSerializer, MessageReact
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# ---- Upload validation (chat) ----
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 ALLOWED_AUDIO_TYPES = {"audio/ogg", "audio/webm", "audio/mpeg", "audio/wav", "audio/aac", "audio/mp4"}
@@ -39,10 +37,6 @@ def _rewind(f):
 
 
 def _validate_uploaded_file(f, kind: str):
-    """
-    kind: 'image' | 'video' | 'voice'
-    Raises DRFValidationError (-> HTTP 400)
-    """
     if not f:
         return
 
@@ -71,7 +65,7 @@ def _validate_uploaded_file(f, kind: str):
         _rewind(f)
         return
 
-    if kind == "voice":
+    if kind in {"voice", "audio"}:
         if f.size > MAX_AUDIO_SIZE:
             raise DRFValidationError({"file": f"{f.name}: audio is too large."})
         if not ct.startswith("audio/") or ct not in ALLOWED_AUDIO_TYPES:
@@ -180,6 +174,30 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
         serializer = ConversationSerializer(conversation, context={"request": request})
         return Response(serializer.data, status=200)
+    
+    @action(detail=True, methods=["get"])
+    def messages(self, request, pk=None):
+        conversation = self.get_object()
+
+        qs = (
+            Message.objects
+            .filter(conversation=conversation)
+            .select_related("sender")
+            .order_by("-created_at")
+        )
+
+        offset = int(request.query_params.get("offset", 0))
+        limit = int(request.query_params.get("limit", 30))
+
+        total = qs.count()
+        qs = qs[offset: offset + limit]
+
+        serializer = MessageSerializer(qs, many=True, context={"request": request})
+
+        return Response({
+            "count": total,
+            "results": serializer.data
+        })
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -207,7 +225,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         uploaded = self.request.FILES.get("file")
 
-        if message_type in {"image", "video", "voice"}:
+        if message_type in {"image", "video", "voice", "audio"}:
             if not uploaded:
                 raise DRFValidationError({"file": "file is required for this message_type"})
             _validate_uploaded_file(uploaded, kind=message_type)
@@ -226,22 +244,12 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if message_type == "image":
                     message.image = uploaded
                     message.save()
-                    try:
-                        message.generate_image_thumbnail()
-                        message.save(update_fields=["image_thumbnail"])
-                    except Exception:
-                        logger.warning("Image thumbnail generation failed", exc_info=True)
 
                 elif message_type == "video":
                     message.video = uploaded
                     message.save()
-                    try:
-                        message.generate_video_thumbnail()
-                        message.save(update_fields=["video_thumbnail"])
-                    except Exception:
-                        logger.warning("Video thumbnail generation failed", exc_info=True)
 
-                elif message_type == "voice":
+                elif message_type in {"voice", "audio"}:
                     message.voice = uploaded
                     message.save()
                     

@@ -93,7 +93,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({"type": "error", "message": "Invalid JSON"}))
 
     async def _broadcast_status(self, status: str):
-        """Шлём статус и в группу чата, и в глобальную presence-группу."""
         event = {
             "type": "user_status_changed",
             "user_id": self.user.id,
@@ -101,10 +100,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "status": status,
         }
 
-        # 1) в конкретный чат
         await self.channel_layer.group_send(self.conversation_group_name, event)
-
-        # 2) глобально всем, кто подписан на presence
         await self.channel_layer.group_send("presence", event)
 
     async def chat_message(self, event):
