@@ -5,24 +5,16 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PGDATA=/var/lib/postgresql/data \
-    POSTGRES_PASSWORD=retronetwork_db_password \
-    POSTGRES_HOST_AUTH_METHOD=md5
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies including PostgreSQL server
+# Install only essential runtime dependencies (no local PostgreSQL)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    gcc \
-    postgresql \
-    postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /var/lib/postgresql/data && \
-    chmod 700 /var/lib/postgresql/data
 
 # Copy requirements file
 COPY requirements.txt .
@@ -33,12 +25,24 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app && \
+    mkdir -p /app/logs /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app/logs /app/staticfiles /app/media
+
 # Make entrypoint script executable
 RUN chmod +x /app/docker-entrypoint-prod.sh
 
-# Expose ports
-EXPOSE 8000 5432
+# Run as non-root user
+USER appuser
+
+# Expose application port only
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
 
 # Run entrypoint script
-CMD ["/app/docker-entrypoint-prod.sh"]
 CMD ["/app/docker-entrypoint-prod.sh"]
