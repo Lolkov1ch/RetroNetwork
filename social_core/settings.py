@@ -81,8 +81,6 @@ ASGI_APPLICATION = 'social_core.asgi.application'
 
 # Redis configuration for Channels
 REDIS_URL = (os.environ.get("REDIS_URL") or "").strip().strip('"').strip("'")
-REDIS_URL = REDIS_URL or None
-
 if REDIS_URL:
     CHANNEL_LAYERS = {
         "default": {
@@ -91,9 +89,10 @@ if REDIS_URL:
         }
     }
 else:
-    CHANNEL_LAYERS = {
-        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
-    }
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    
+print("REDIS_URL =", os.environ.get("REDIS_URL"))
+print("CHANNEL_LAYERS BACKEND =", CHANNEL_LAYERS["default"]["BACKEND"])
 
 TEMPLATES = [
     {
