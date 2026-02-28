@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
 
 from PIL import Image as PilImage
 
@@ -103,34 +104,6 @@ class MessengerView(LoginRequiredMixin, TemplateView):
             }
         )
         return context
-    
-    @action(detail=True, methods=["patch"], url_path="edit")
-    def edit(self, request, pk=None):
-        message = self.get_object()
-
-        if message.sender_id != request.user.id:
-            return Response({"detail": "You can edit only your own messages."},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        if (message.message_type or "text") != "text":
-            return Response({"detail": "Only text messages can be edited."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        content = (request.data.get("content") or "").strip()
-        if not content:
-            raise DRFValidationError({"content": "Content cannot be empty."})
-
-        message.content = content
-
-        if hasattr(message, "is_edited"):
-            message.is_edited = True
-        if hasattr(message, "edited_at"):
-            message.edited_at = timezone.now()
-
-        message.save(update_fields=[f for f in ["content", "is_edited", "edited_at"] if hasattr(message, f)])
-
-        serializer = MessageSerializer(message, context={"request": request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class IsParticipantOrReadOnly(permissions.BasePermission):
@@ -159,6 +132,29 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 conversation.participants.add(user)
             except User.DoesNotExist:
                 pass
+
+    @action(detail=True, methods=["get"])
+    def messages(self, request, pk=None):
+        """Return messages for this conversation, paginated."""
+        conversation = self.get_object()
+
+        if request.user not in conversation.participants.all():
+            raise permissions.PermissionDenied("You are not a participant in this conversation")
+
+        qs = (
+            conversation.messages.all()
+            .select_related('sender')
+            .prefetch_related('read_by_users', 'reactions')
+            .order_by('-created_at')
+        )
+
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = MessageSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = MessageSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def search_users(self, request):
@@ -236,10 +232,12 @@ class MessageViewSet(viewsets.ModelViewSet):
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_queryset(self):
+        # newest messages first; reverse the default model ordering
         return (
             Message.objects.filter(conversation__participants=self.request.user)
             .select_related("sender")
             .prefetch_related("read_by_users", "reactions")
+            .order_by("-created_at")
         )
 
     def perform_create(self, serializer):
@@ -347,3 +345,31 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
         MessageReaction.objects.filter(message=message, user=request.user).delete()
         return Response({"status": "reaction removed"}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["patch"], url_path="edit")
+    def edit(self, request, pk=None):
+        # permit sender to edit text messages only
+        message = self.get_object()
+
+        if message.sender_id != request.user.id:
+            return Response({"detail": "You can edit only your own messages."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        if (message.message_type or "text") != "text":
+            return Response({"detail": "Only text messages can be edited."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        content = (request.data.get("content") or "").strip()
+        if not content:
+            raise DRFValidationError({"content": "Content cannot be empty."})
+
+        message.content = content
+        if hasattr(message, "is_edited"):
+            message.is_edited = True
+        if hasattr(message, "edited_at"):
+            message.edited_at = timezone.now()
+
+        message.save(update_fields=[f for f in ["content", "is_edited", "edited_at"] if hasattr(message, f)])
+
+        serializer = MessageSerializer(message, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

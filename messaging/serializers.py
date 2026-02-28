@@ -160,7 +160,8 @@ class ConversationSerializer(serializers.ModelSerializer):
         return avatar_data_uri(other_user.username if other_user else None, size=80)
 
     def get_last_message(self, obj):
-        last_message = obj.messages.last()
+        # use explicit ordering to ensure newest message
+        last_message = obj.messages.order_by('-created_at').first()
         if last_message:
             return MessageSerializer(last_message).data
         return None
