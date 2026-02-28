@@ -1,6 +1,6 @@
 
 # Build stage
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -28,8 +28,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Copy requirements and install into the system site-packages in the final image
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --requirement requirements.txt
 
 # Copy application code
 COPY . .
@@ -40,6 +42,7 @@ RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/logs /app/staticfiles /app/media && \
     chown -R appuser:appuser /app/logs /app/staticfiles /app/media
 
+# For production, run as non-root `appuser`.
 USER appuser
 
 EXPOSE 8000
