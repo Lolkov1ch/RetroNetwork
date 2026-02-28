@@ -1,53 +1,56 @@
 from django.conf import settings
 from django.contrib import messages
-from .models import Post
+from django.core.exceptions import ValidationError
+
 from attachments.models import Media
 from .forms import PostMediaForm
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from .thumbnail_utils import generate_post_thumbnail
 
-IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif')
-VIDEO_EXTENSIONS = ('.mp4', '.webm', '.avi', '.mov','.mkv')
 
-def is_image(media):
-    return media.file.name.lower().endswith(IMAGE_EXTENSIONS)
+def handle_media_upload(request, post) -> bool:
+    files = request.FILES.getlist("images") # contentReference[oaicite:2]{index=2}
 
-def is_video(media):
-    return media.file.name.lower().endswith(VIDEO_EXTENSIONS)
+    if not files:
+        return True
 
-def get_post_media(post_id):
-    return Media.objects.filter(
-        content_type=ContentType.objects.get_for_model(Post),
-        object_id=post_id
-    )
-
-def handle_media_upload(request, post):
-    files = request.FILES.getlist("images")
-    
-    if len(files) > settings.MAX_FILES_PER_UPLOAD:
+    if len(files) > settings.MAX_FILES_PER_UPLOAD:  # :contentReference[oaicite:3]{index=3}
         messages.error(request, f"Maximum {settings.MAX_FILES_PER_UPLOAD} files allowed.")
         return False
-    
+
+    uploaded_any = False
+
     for f in files:
-        if f.size > settings.MAX_UPLOAD_SIZE:
+        if f.size > settings.MAX_UPLOAD_SIZE:  # :contentReference[oaicite:4]{index=4}
             messages.error(request, f"{f.name} exceeds maximum file size.")
             continue
 
-        media_form = PostMediaForm(files={'file': f})
-        if not media_form.is_valid():
-            for error in media_form.errors.get('file', []):
-                messages.error(request, error)
+        media_form = PostMediaForm(data={}, files={"file": f})
+
+        if not media_form.is_valid():  # :contentReference[oaicite:5]{index=5}
+            for error in media_form.errors.get("file", []):
+                messages.error(request, str(error))
             continue
-            
+
+        try:
+            f.seek(0)
+        except Exception:
+            pass
+
         try:
             Media.objects.create(
                 user=request.user,
                 file=f,
-                content_object=post
-            )
+                content_object=post,
+            )  # :contentReference[oaicite:6]{index=6}
+            uploaded_any = True
+
         except ValidationError as e:
             messages.error(request, str(e))
 
-    generate_post_thumbnail(post)
+        except Exception as e:
+            messages.error(request, f"{f.name}: upload failed ({e.__class__.__name__}).")
+
+    if uploaded_any:
+        generate_post_thumbnail(post)  # :contentReference[oaicite:7]{index=7}
+
     return True
