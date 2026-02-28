@@ -79,19 +79,24 @@ ROOT_URLCONF = 'social_core.urls'
 
 ASGI_APPLICATION = 'social_core.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': os.environ.get(
-            'CHANNEL_BACKEND',
-            'channels.layers.InMemoryChannelLayer'
-            if DEBUG
-            else 'channels_redis.core.RedisChannelLayer'
-        ),
-        'CONFIG': {} if DEBUG else {
-            'hosts': [(os.environ.get('REDIS_HOST', 'localhost'), int(os.environ.get('REDIS_PORT', 6379)))],
-        } if not DEBUG else {},
+# Redis configuration for Channels
+REDIS_URL = os.environ.get("REDIS_URL")
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        }
     }
-}
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 
 TEMPLATES = [
     {

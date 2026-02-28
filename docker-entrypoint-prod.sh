@@ -71,11 +71,5 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear -v 1
 
 echo ""
-echo "=== Starting Gunicorn ==="
-exec gunicorn social_core.wsgi:application \
-  --bind 0.0.0.0:8000 \
-  --workers ${WEB_CONCURRENCY:-2} \
-  --timeout 120 \
-  --access-logfile - \
-  --error-logfile - \
-  --log-level info
+echo "=== Starting Daphne (ASGI) ==="
+exec daphne -b 0.0.0.0 -p 8000 social_core.asgi:application
