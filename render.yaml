@@ -1,10 +1,4 @@
 services:
-  - type: pserv
-    name: retronetwork-db
-    runtime: postgresql15
-    plan: free
-    region: frankfurt
-  
   - type: web
     name: retronetwork
     runtime: docker
@@ -21,5 +15,3 @@ services:
       - key: ALLOWED_HOSTS
         value: 'retronetwork.onrender.com'
     autoDeploy: true
-    depends_on:
-      - retronetwork-db

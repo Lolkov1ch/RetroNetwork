@@ -5,17 +5,24 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PGDATA=/var/lib/postgresql/data \
+    POSTGRES_HOST_AUTH_METHOD=trust
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including PostgreSQL server
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
+    postgresql-15 \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
+
+# Create PostgreSQL data directory
+RUN mkdir -p /var/lib/postgresql/data && \
+    chmod 700 /var/lib/postgresql/data
 
 # Copy requirements file
 COPY requirements.txt .
@@ -29,8 +36,9 @@ COPY . .
 # Make entrypoint script executable
 RUN chmod +x /app/docker-entrypoint-prod.sh
 
-# Expose port
-EXPOSE 8000
+# Expose ports
+EXPOSE 8000 5432
 
 # Run entrypoint script
+CMD ["/app/docker-entrypoint-prod.sh"]
 CMD ["/app/docker-entrypoint-prod.sh"]
