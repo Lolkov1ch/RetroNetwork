@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from social_core.storages import ImageCloudinaryStorage
 
 User = get_user_model()
 
@@ -44,7 +45,7 @@ class ProfileCustomization(models.Model):
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile_customization")
-    cover_photo = models.ImageField(upload_to="covers/", blank=True, null=True)
+    cover_photo = models.ImageField(upload_to="covers/",storage=ImageCloudinaryStorage(),blank=True,null=True)
     show_bio = models.BooleanField(default=True)
     show_location = models.BooleanField(default=True)
     show_birth_date = models.BooleanField(default=True)

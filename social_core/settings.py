@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'user_settings',
     'notifications',
     'messaging',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 MIDDLEWARE = [
@@ -208,7 +210,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 STORAGES = {
     "default": {
-        "BACKEND": "social_core.storages.SmartCloudinaryStorage",
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",

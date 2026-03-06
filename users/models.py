@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from cloudinary_storage.storage import AvatarCloudinaryStorage
 import re
 
 
@@ -33,7 +34,7 @@ class User(AbstractUser):
     )
     bio = models.TextField(blank=True, max_length=500)
     birth_date = models.DateField(null=True, blank=True)
-    avatar = models.ImageField(upload_to="avatars/", blank=True)
+    avatar = models.ImageField(upload_to="avatars/",storage=AvatarCloudinaryStorage(),blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline')
     previous_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline', help_text="Status before logout")
 

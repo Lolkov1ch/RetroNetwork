@@ -6,6 +6,13 @@ from io import BytesIO
 import mimetypes
 import logging
 
+from social_core.storages import (
+    ImageCloudinaryStorage,
+    ChatVideoCloudinaryStorage,
+    RawFileCloudinaryStorage
+)
+
+
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
@@ -77,21 +84,49 @@ class Message(models.Model):
         db_index=True
     )
     content = models.TextField(blank=True)
-    file = models.FileField(upload_to=get_message_upload_path, blank=True, null=True)
-    image = models.ImageField(upload_to=get_message_upload_path, blank=True, null=True)
+
+    file = models.FileField(
+        upload_to=get_message_upload_path,
+        storage=RawFileCloudinaryStorage(),
+        blank=True,
+        null=True
+    )
+
+    image = models.ImageField(
+        upload_to=get_message_upload_path,
+        storage=ImageCloudinaryStorage(),
+        blank=True,
+        null=True
+    )
+
     image_thumbnail = models.ImageField(
         upload_to=get_message_upload_path,
+        storage=ImageCloudinaryStorage(),
         blank=True,
         null=True
     )
-    video = models.FileField(upload_to=get_message_upload_path, blank=True, null=True)
+
+    video = models.FileField(
+        upload_to=get_message_upload_path,
+        storage=ChatVideoCloudinaryStorage(),
+        blank=True,
+        null=True
+    )
+
     video_thumbnail = models.ImageField(
         upload_to=get_message_upload_path,
+        storage=ImageCloudinaryStorage(),
         blank=True,
         null=True
     )
-    voice = models.FileField(upload_to=get_message_upload_path, blank=True, null=True)
-    voice_duration = models.FloatField(default=0)  # in seconds
+
+    voice = models.FileField(
+        upload_to=get_message_upload_path,
+        storage=RawFileCloudinaryStorage(),
+        blank=True,
+        null=True
+    )
+    voice_duration = models.FloatField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     read_at = models.DateTimeField(blank=True, null=True, db_index=True)
@@ -210,9 +245,14 @@ class MessageAttachment(models.Model):
         choices=ATTACHMENT_TYPE_CHOICES,
         db_index=True
     )
-    file = models.FileField(upload_to=get_message_upload_path, db_index=False)
+    file = models.FileField(
+        upload_to=get_message_upload_path,
+        storage=RawFileCloudinaryStorage()
+    )
+
     thumbnail = models.ImageField(
         upload_to=get_message_upload_path,
+        storage=ImageCloudinaryStorage(),
         blank=True,
         null=True
     )
