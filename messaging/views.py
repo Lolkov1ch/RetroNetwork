@@ -133,11 +133,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def messages(self, request, pk=None):
-        """Return messages for this conversation, paginated.
-
-        Messages are returned oldest-first (ascending by `created_at`).
-        Supports `offset` and `limit` query params and returns `count`.
-        """
         conversation = self.get_object()
 
         if request.user not in conversation.participants.all():
@@ -208,8 +203,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
         serializer = ConversationSerializer(conversation, context={"request": request})
         return Response(serializer.data, status=200)
-    
-    # messages action is implemented above (ascending order, paginated)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -218,7 +211,6 @@ class MessageViewSet(viewsets.ModelViewSet):
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_queryset(self):
-        # messages returned oldest-first (ascending by created_at)
         return (
             Message.objects.filter(conversation__participants=self.request.user)
             .select_related("sender")
@@ -237,7 +229,6 @@ class MessageViewSet(viewsets.ModelViewSet):
 
         message_type = (self.request.data.get("message_type") or "text").strip()
 
-        # Accept common file field names from clients and fall back to first file
         uploaded = self.request.FILES.get("file")
         if not uploaded:
             for alt in ("image", "video", "voice", "audio"):
@@ -245,8 +236,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 if uploaded:
                     break
 
-        # As a last resort, if any file was uploaded under an unexpected key,
-        # pick the first one so uploads aren't rejected due to field name.
         if not uploaded and self.request.FILES:
             try:
                 uploaded = next(iter(self.request.FILES.values()))
@@ -258,18 +247,15 @@ class MessageViewSet(viewsets.ModelViewSet):
                 logger.warning("Upload attempted without file for message_type=%s; files=%s", message_type, list(self.request.FILES.keys()))
                 raise DRFValidationError({"file": "file is required for this message_type"})
 
-            # Validate using the declared message type (kind)
             _validate_uploaded_file(uploaded, kind=message_type)
             _rewind(uploaded)
 
-        # create base message
         message = serializer.save(
             sender=self.request.user,
             message_type=message_type,
             conversation=conversation,
         )
 
-        # attach file safely (including audio/voice)
         if uploaded and message_type in {"image", "video", "voice", "audio"}:
             try:
                 if message_type == "image":
@@ -283,8 +269,7 @@ class MessageViewSet(viewsets.ModelViewSet):
                 elif message_type in {"voice", "audio"}:
                     message.voice = uploaded
                     message.save()
-                    
-                    # Handle additional photo/video attachments with voice messages
+
                     attachments_files = self.request.FILES.getlist("attachments")
                     attachment_types = self.request.POST.getlist("attachment_types")
                     
@@ -314,7 +299,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 message.delete()
                 raise
             except Exception:
-                # storage/cloudinary errors -> 400, not 500
                 message.delete()
                 raise DRFValidationError({"file": f"{uploaded.name}: upload failed (invalid/unsupported file)."})
 
@@ -351,7 +335,6 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"], url_path="edit")
     def edit(self, request, pk=None):
-        # permit sender to edit text messages only
         message = self.get_object()
 
         if message.sender_id != request.user.id:

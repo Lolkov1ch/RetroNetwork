@@ -43,6 +43,8 @@ class Media(models.Model):
     def save(self, *args, **kwargs):
         if self.file:
             self.file_type = get_file_type(self.file.name)
+            if hasattr(self.file, 'seek'):
+                self.file.seek(0)
         super().save(*args, **kwargs)
     
     def __str__(self):
