@@ -247,7 +247,8 @@ class MessageAttachment(models.Model):
     )
     file = models.FileField(
         upload_to=get_message_upload_path,
-        storage=RawFileCloudinaryStorage()
+        blank=True,
+        null=True
     )
 
     thumbnail = models.ImageField(
@@ -264,6 +265,14 @@ class MessageAttachment(models.Model):
             models.Index(fields=['message', '-created_at']),
             models.Index(fields=['attachment_type']),
         ]
+
+    def save(self, *args, **kwargs):
+        # Use appropriate storage based on attachment type
+        if self.attachment_type == 'image':
+            self.file.field.storage = ImageCloudinaryStorage()
+        elif self.attachment_type == 'video':
+            self.file.field.storage = ChatVideoCloudinaryStorage()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Attachment ({self.attachment_type}) for message {self.message.id}"

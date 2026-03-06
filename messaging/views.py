@@ -259,14 +259,17 @@ class MessageViewSet(viewsets.ModelViewSet):
         if uploaded and message_type in {"image", "video", "voice", "audio"}:
             try:
                 if message_type == "image":
+                    _rewind(uploaded)
                     message.image = uploaded
                     message.save()
 
                 elif message_type == "video":
+                    _rewind(uploaded)
                     message.video = uploaded
                     message.save()
 
                 elif message_type in {"voice", "audio"}:
+                    _rewind(uploaded)
                     message.voice = uploaded
                     message.save()
 
@@ -298,7 +301,8 @@ class MessageViewSet(viewsets.ModelViewSet):
             except DRFValidationError:
                 message.delete()
                 raise
-            except Exception:
+            except Exception as e:
+                logger.error(f"File upload error: {e}", exc_info=True)
                 message.delete()
                 raise DRFValidationError({"file": f"{uploaded.name}: upload failed (invalid/unsupported file)."})
 
