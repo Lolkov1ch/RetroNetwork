@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from cloudinary_storage.storage import AvatarCloudinaryStorage
+from social_core.storages import AvatarCloudinaryStorage, ImageCloudinaryStorage
 import re
 
 
