@@ -19,11 +19,11 @@
           <div class="media-thumbs">
             {% for m in media_files %}
               <div class="media-thumb">
-                {% with ext=m.file.url|lower %}
+                {% with ext=m.media_url|lower %}
                   {% if '.mp4' in ext or '.webm' in ext or '.avi' in ext or '.mov' in ext %}
-                    <video src="{{ m.file.url }}" controls></video>
+                    <video src="{{ m.media_url }}" controls></video>
                   {% else %}
-                    <img src="{{ m.file.url }}" alt="media">
+                    <img src="{{ m.media_url }}" alt="media">
                   {% endif %}
                 {% endwith %}
                 <label class="del-check">

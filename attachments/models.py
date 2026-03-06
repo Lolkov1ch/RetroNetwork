@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.auth import get_user_model
 import logging
+from cloudinary.utils import cloudinary_url
 
 from .storage_paths import user_directory_path
 from .validators import validate_upload_file, get_file_type
@@ -69,6 +70,25 @@ class Media(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.file.name}'
+    
+    @property
+    def media_url(self):
+        if not self.file:
+            return ""
+
+        if self.file_type == "image":
+            resource_type = "image"
+        elif self.file_type == "video":
+            resource_type = "video"
+        else:
+            resource_type = "raw"
+
+        url, _ = cloudinary_url(
+            self.file.name,
+            resource_type=resource_type,
+            secure=True,
+        )
+        return url
 
     @property
     def file_size_mb(self):

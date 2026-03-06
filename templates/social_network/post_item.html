@@ -18,9 +18,9 @@
       {% elif post.images or post.videos %}
         <div class="post-media">
           {% if post.images %}
-            <img src="{{ post.images.0.file.url }}" alt="">
+            <img src="{{ post.images.0.media_url }}" alt="">
           {% elif post.videos %}
-            <video controls><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+            <video controls><source src="{{ post.videos.0.media_url }}" type="video/mp4"></video>
           {% endif %}
         </div>
       {% endif %}

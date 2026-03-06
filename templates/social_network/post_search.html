@@ -46,7 +46,7 @@
               {% if post.images %}
                 <img src="{{ post.images.0.file.url }}" alt="Post image" style="width: 100%; height: auto; max-height: 300px; object-fit: cover;">
               {% elif post.videos %}
-                <video controls style="width: 100%; max-height: 300px;"><source src="{{ post.videos.0.file.url }}" type="video/mp4"></video>
+                <video controls style="width: 100%; max-height: 300px;"><source src="{{ post.videos.0.media_url }}" type="video/mp4"></video>
               {% endif %}
             </div>
           {% endif %}

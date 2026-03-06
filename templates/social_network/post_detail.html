@@ -24,10 +24,10 @@
       <div class="post-media">
         {% for media in media_files %}
           {% if media.is_image %}
-            <img src="{{ media.file.url }}" alt="Post image">
+            <img src="{{ media.media_url }}" alt="Post image">
           {% elif media.is_video %}
             <video controls style="width:100%;">
-              <source src="{{ media.file.url }}" type="video/mp4">
+              <source src="{{ media.media_url }}" type="video/mp4">
             </video>
           {% endif %}
         {% endfor %}
