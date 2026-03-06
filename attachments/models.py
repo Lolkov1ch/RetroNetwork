@@ -5,9 +5,22 @@ from django.contrib.auth import get_user_model
 
 from .storage_paths import user_directory_path
 from .validators import validate_upload_file, get_file_type
-from social_core.storages import ImageCloudinaryStorage, ChatVideoCloudinaryStorage, RawFileCloudinaryStorage
+from social_core.storages import (
+    ImageCloudinaryStorage,
+    ChatVideoCloudinaryStorage,
+    RawFileCloudinaryStorage,
+)
 
 User = get_user_model()
+
+
+def get_storage_for_type(file_type):
+    if file_type == "image":
+        return ImageCloudinaryStorage()
+    if file_type == "video":
+        return ChatVideoCloudinaryStorage()
+    return RawFileCloudinaryStorage()
+
 
 class Media(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_media')
@@ -33,48 +46,41 @@ class Media(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-    
+
     class Meta:
         ordering = ['-uploaded_at']
         indexes = [
             models.Index(fields=['user', '-uploaded_at']),
             models.Index(fields=['file_type', '-uploaded_at']),
         ]
-    
+
     def save(self, *args, **kwargs):
         if self.file:
             self.file_type = get_file_type(self.file.name)
-            # Ensure file pointer is at the beginning
+            self.file.storage = get_storage_for_type(self.file_type)
             if hasattr(self.file, 'seek'):
                 self.file.seek(0)
-            # Use appropriate storage based on file type
-            if self.file_type == 'image':
-                self.file.field.storage = ImageCloudinaryStorage()
-            elif self.file_type == 'video':
-                self.file.field.storage = ChatVideoCloudinaryStorage()
-            elif self.file_type in ('audio', 'document'):
-                self.file.field.storage = RawFileCloudinaryStorage()
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return f'{self.user.username} - {self.file.name}'
-    
+
     @property
     def file_size_mb(self):
         return round(self.file.size / (1024 * 1024), 2) if self.file else 0
-    
+
     @property
     def is_image(self):
         return self.file_type == 'image'
-    
+
     @property
     def is_video(self):
         return self.file_type == 'video'
-    
+
     @property
     def is_audio(self):
         return self.file_type == 'audio'
-    
+
     @property
     def is_document(self):
         return self.file_type == 'document'

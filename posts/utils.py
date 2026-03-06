@@ -1,4 +1,3 @@
-# posts/utils.py
 import logging
 
 from django.contrib import messages
@@ -26,12 +25,17 @@ def _detect_type(uploaded_file) -> str:
 def handle_media_upload(request, post):
     files = (
         request.FILES.getlist("media_files")
+        or request.FILES.getlist("images")
+        or request.FILES.getlist("videos")
         or request.FILES.getlist("files")
         or request.FILES.getlist("file")
     )
 
     if not files:
-        return
+        return False
+
+    uploaded_any = False
+    post_content_type = ContentType.objects.get_for_model(Post)
 
     for f in files:
         form = PostMediaForm(files={"file": f})
@@ -45,22 +49,29 @@ def handle_media_upload(request, post):
 
         try:
             Media.objects.create(
-                post=post,
-                uploader=request.user,
+                user=request.user,
                 file=form.cleaned_data["file"],
-                file_type=file_type,  
+                file_type=file_type,
+                content_type=post_content_type,
+                object_id=post.id,
             )
+            uploaded_any = True
         except ValidationError as e:
             messages.error(request, f"{f.name}: {e}")
-            continue
-        except Exception as e:
-            logger.warning("Media upload failed for %s", getattr(f, "name", "file"), exc_info=True)
-            messages.error(request, f"{getattr(f, 'name', 'file')}: upload failed (invalid/unsupported file).")
-            continue
+        except Exception:
+            logger.warning(
+                "Media upload failed for %s",
+                getattr(f, "name", "file"),
+                exc_info=True,
+            )
+            messages.error(
+                request,
+                f"{getattr(f, 'name', 'file')}: upload failed (invalid/unsupported file)."
+            )
 
+    return uploaded_any
 
 def get_post_media(post_id):
-    """Get all media files associated with a post."""
     post_content_type = ContentType.objects.get_for_model(Post)
     return Media.objects.filter(
         content_type=post_content_type,
@@ -69,10 +80,8 @@ def get_post_media(post_id):
 
 
 def is_image(media):
-    """Check if a media object is an image."""
     return media.is_image
 
 
 def is_video(media):
-    """Check if a media object is a video."""
     return media.is_video
