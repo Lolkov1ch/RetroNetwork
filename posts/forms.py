@@ -33,7 +33,6 @@ class PostMediaForm(forms.ModelForm):
 
         ct = (getattr(f, "content_type", "") or "").lower().strip()
 
-        # size guards
         if ct.startswith("image/") and f.size > MAX_IMAGE_SIZE:
             raise ValidationError(f"{f.name}: image is too large.")
         if ct.startswith("video/") and f.size > MAX_VIDEO_SIZE:
@@ -41,7 +40,6 @@ class PostMediaForm(forms.ModelForm):
         if ct.startswith("audio/") and f.size > MAX_AUDIO_SIZE:
             raise ValidationError(f"{f.name}: audio is too large.")
 
-        # type validation
         if ct.startswith("image/"):
             if ct not in ALLOWED_IMAGE_TYPES:
                 raise ValidationError(f"{f.name}: Unsupported image type ({ct}).")

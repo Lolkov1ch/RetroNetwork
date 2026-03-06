@@ -16,7 +16,6 @@ from channels.auth import AuthMiddlewareStack
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'social_core.settings')
 
-# Setup Django before importing other modules
 django.setup()
 
 from messaging.routing import websocket_urlpatterns

@@ -23,7 +23,6 @@ class PostAdmin(admin.ModelAdmin):
     )
     
     def get_queryset(self, request):
-        """Optimize queryset with annotations."""
         qs = super().get_queryset(request)
         return qs.annotate(
             likes_count=Count('likes', distinct=True),
@@ -31,7 +30,6 @@ class PostAdmin(admin.ModelAdmin):
         )
     
     def author_link(self, obj):
-        """Link to author profile."""
         url = reverse('admin:users_user_change', args=[obj.author.pk])
         return format_html(
             '<a href="{}">{} (@{})</a>',
@@ -42,7 +40,6 @@ class PostAdmin(admin.ModelAdmin):
     author_link.short_description = 'Author'
     
     def content_preview(self, obj):
-        """Show content preview."""
         preview = obj.content[:100] if obj.content else '(no content)'
         if len(obj.content) > 100:
             preview += '...'
@@ -50,37 +47,31 @@ class PostAdmin(admin.ModelAdmin):
     content_preview.short_description = 'Content'
     
     def media_count(self, obj):
-        """Count media attachments."""
         media = obj.media_set.count()
         return format_html('📎 {}', media) if media > 0 else '—'
     media_count.short_description = 'Media'
     
     def likes_count(self, obj):
-        """Show like count."""
         count = getattr(obj, 'likes_count', 0)
         return format_html('❤️ {}', count)
     likes_count.short_description = 'Likes'
     
     def comments_count(self, obj):
-        """Show comment count."""
         count = getattr(obj, 'comments_count', 0)
         return format_html('💬 {}', count)
     comments_count.short_description = 'Comments'
     
     def is_visible(self, obj):
-        """Show visibility status."""
         return '✓' if obj.id else '✗'
     is_visible.short_description = 'Visible'
     
     def thumbnail_preview(self, obj):
-        """Display thumbnail preview."""
         if obj.thumbnail_url:
             return format_html('<img src="/media/{}" width="200" style="max-height: 200px; border-radius: 4px;"/>', obj.thumbnail_url)
         return 'No thumbnail'
     thumbnail_preview.short_description = 'Thumbnail Preview'
     
     def media_preview(self, obj):
-        """Display first image/video preview."""
         if hasattr(obj, 'images') and obj.images.exists():
             img = obj.images.first()
             return format_html('<img src="{}" width="200" style="max-height: 200px; border-radius: 4px;"/>', img.file.url)

@@ -1,16 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "=== Django Production Deployment ==="
-
-# Verify DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
-    echo "❌ ERROR: DATABASE_URL environment variable is not set"
+    echo "ERROR: DATABASE_URL environment variable is not set"
     echo "Set DATABASE_URL to your managed PostgreSQL connection string"
     exit 1
 fi
 
-echo "✅ DATABASE_URL is configured"
+echo "DATABASE_URL is configured"
 
 MAX_RETRIES=5
 RETRY_DELAY=3
@@ -24,15 +21,15 @@ run_step () {
         echo ""
         echo "$label — attempt $attempt/$MAX_RETRIES"
         if python manage.py "$@"; then
-            echo "✅ $label succeeded"
+            echo "$label succeeded"
             return 0
         fi
 
         if [ $attempt -lt $MAX_RETRIES ]; then
-            echo "⚠️  $label failed, waiting $RETRY_DELAY seconds before retry..."
+            echo "$label failed, waiting $RETRY_DELAY seconds before retry..."
             sleep $RETRY_DELAY
         else
-            echo "❌ $label failed after $MAX_RETRIES attempts"
+            echo "$label failed after $MAX_RETRIES attempts"
             return 1
         fi
 
@@ -40,10 +37,8 @@ run_step () {
     done
 }
 
-# Run migrations
 run_step "All migrations" migrate --noinput -v 2
 
-# Create superuser automatically (only if variables are provided)
 echo ""
 echo "Ensuring superuser exists..."
 

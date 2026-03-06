@@ -30,7 +30,7 @@ class Media(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_media')
     file = models.FileField(
         upload_to=user_directory_path,
-        storage=RawFileCloudinaryStorage(),  # Default to raw storage
+        storage=RawFileCloudinaryStorage(),
         validators=[validate_upload_file],
         help_text='Maximum file size depends on file type'
     )

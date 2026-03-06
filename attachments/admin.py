@@ -22,13 +22,11 @@ class MediaAdmin(admin.ModelAdmin):
     )
     
     def user_link(self, obj):
-        """Link to user who uploaded."""
         url = reverse('admin:users_user_change', args=[obj.user.pk])
         return format_html('<a href="{}">{} (@{})</a>', url, obj.user.display_name, obj.user.handle)
     user_link.short_description = 'Uploaded by'
     
     def file_type_badge(self, obj):
-        """Show file type as badge."""
         colors = {
             'image': '#28a745',
             'video': '#dc3545',
@@ -54,13 +52,11 @@ class MediaAdmin(admin.ModelAdmin):
     file_type_badge.short_description = 'Type'
     
     def file_preview(self, obj):
-        """Show filename preview."""
         filename = obj.file.name.split('/')[-1] if obj.file else '(no file)'
         return filename[:40] + '...' if len(filename) > 40 else filename
     file_preview.short_description = 'File'
     
     def file_size(self, obj):
-        """Show file size in human-readable format."""
         if obj.file:
             size = obj.file.size
             for unit in ['B', 'KB', 'MB', 'GB']:
@@ -71,7 +67,6 @@ class MediaAdmin(admin.ModelAdmin):
     file_size.short_description = 'Size'
     
     def media_preview(self, obj):
-        """Display media preview."""
         if obj.file_type == 'image' and obj.file:
             return format_html('<img src="{}" width="300" style="max-height: 300px; border-radius: 4px;"/>', obj.file.url)
         elif obj.file_type == 'video' and obj.file:
@@ -84,7 +79,6 @@ class MediaAdmin(admin.ModelAdmin):
     media_preview.short_description = 'Preview'
     
     def file_info(self, obj):
-        """Display file info in readonly field."""
         if obj.file:
             return format_html(
                 '<strong>File:</strong> {}<br><strong>Type:</strong> {}<br><strong>Path:</strong> {}',

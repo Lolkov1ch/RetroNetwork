@@ -15,6 +15,6 @@ services:
       - key: ALLOWED_HOSTS
         value: 'retronetwork.onrender.com'
       - key: DATABASE_URL
-        sync: false  # Set via Render Dashboard or environment
+        sync: false  
       - key: REDIS_URL
-        sync: false  # Set via Render Dashboard or environment
+        sync: false  

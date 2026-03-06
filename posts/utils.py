@@ -51,7 +51,6 @@ def handle_media_upload(request, post):
 
         try:
             cleaned_file = form.cleaned_data["file"]
-            # Ensure file pointer is at the beginning
             if hasattr(cleaned_file, 'seek'):
                 cleaned_file.seek(0)
             

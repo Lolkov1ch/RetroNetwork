@@ -15,8 +15,7 @@ def serialize_notification(n):
                 sender_avatar = n.sender.avatar.url
         except (AttributeError, FileNotFoundError):
             pass
-    
-    # Fall back to stored avatar or name
+
     if not sender_avatar:
         sender_avatar = n.sender_avatar or ''
     if not sender_name or sender_name == 'Notification':

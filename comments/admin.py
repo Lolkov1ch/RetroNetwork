@@ -22,7 +22,6 @@ class CommentAdmin(admin.ModelAdmin):
     )
     
     def author_link(self, obj):
-        """Link to comment author."""
         url = reverse('admin:users_user_change', args=[obj.author.pk])
         return format_html(
             '<a href="{}">{} (@{})</a>',
@@ -33,13 +32,11 @@ class CommentAdmin(admin.ModelAdmin):
     author_link.short_description = 'Author'
     
     def post_link(self, obj):
-        """Link to parent post."""
         url = reverse('admin:posts_post_change', args=[obj.post.pk])
         return format_html('<a href="{}">Post #{}</a>', url, obj.post.pk)
     post_link.short_description = 'Post'
     
     def content_preview(self, obj):
-        """Show content preview."""
         preview = obj.content[:80] if obj.content else '(no content)'
         if len(obj.content) > 80:
             preview += '...'
@@ -47,12 +44,10 @@ class CommentAdmin(admin.ModelAdmin):
     content_preview.short_description = 'Content'
     
     def status(self, obj):
-        """Show comment status."""
         return '✓ Active'
     status.short_description = 'Status'
     
     def author_info(self, obj):
-        """Display author info in readonly field."""
         return format_html(
             '<strong>{}</strong><br>@{}<br>Email: {}',
             obj.author.display_name,

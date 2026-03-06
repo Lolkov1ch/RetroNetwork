@@ -183,8 +183,7 @@ class Message(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-        
-        # Generate thumbnails BEFORE saving (so files are ready for Cloudinary)
+
         if is_new:
             if self.message_type == 'image' and self.image:
                 try:
@@ -196,8 +195,7 @@ class Message(models.Model):
                     self.generate_video_thumbnail()
                 except Exception as e:
                     logger.warning(f"Failed to generate video thumbnail: {e}", exc_info=True)
-        
-        # Now save with all prepared fields
+
         super().save(*args, **kwargs)
 
 
@@ -267,7 +265,6 @@ class MessageAttachment(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Use appropriate storage based on attachment type
         if self.attachment_type == 'image':
             self.file.field.storage = ImageCloudinaryStorage()
         elif self.attachment_type == 'video':
@@ -290,7 +287,6 @@ class MessageAttachment(models.Model):
                 logger.warning(f"Error generating video attachment thumbnail: {e}", exc_info=True)
 
     def generate_thumbnail(self):
-        """Generate thumbnail for image attachments."""
         if self.file and self.attachment_type == 'image':
             try:
                 img = Image.open(self.file)
@@ -306,7 +302,6 @@ class MessageAttachment(models.Model):
                 logger.warning(f"Error generating image attachment thumbnail: {e}", exc_info=True)
 
     def generate_video_thumbnail(self):
-        """Generate placeholder thumbnail for video attachments."""
         if self.file and self.attachment_type == 'video' and not self.thumbnail:
             try:
                 img = Image.new('RGB', (320, 180), color=(52, 91, 165))

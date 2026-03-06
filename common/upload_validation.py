@@ -12,9 +12,6 @@ def rewind(f):
         pass
 
 def validate_upload(f, *, kind: str = "any"):
-    """
-    kind: 'any' | 'image' | 'video' | 'audio'
-    """
     if not f:
         return
 

@@ -8,7 +8,6 @@ User = get_user_model()
 
 @receiver(user_logged_in)
 def set_status_online_on_login(sender, request, user, **kwargs):
-    # Defensive: ensure we have a real user instance
     try:
         if not user or getattr(user, 'is_anonymous', False):
             return
@@ -30,7 +29,6 @@ def set_status_offline_on_logout(sender, request, user, **kwargs):
     except Exception:
         return
 
-    # Preserve previous status only if it isn't already 'offline'
     try:
         if getattr(user, 'status', None) and user.status != 'offline':
             user.previous_status = user.status

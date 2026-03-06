@@ -22,7 +22,6 @@ class LikeAdmin(admin.ModelAdmin):
     )
     
     def user_link(self, obj):
-        """Link to user."""
         url = reverse('admin:users_user_change', args=[obj.user.pk])
         return format_html(
             '<a href="{}">{} (@{})</a>',
@@ -33,7 +32,6 @@ class LikeAdmin(admin.ModelAdmin):
     user_link.short_description = 'User'
     
     def target_type(self, obj):
-        """Show what was liked."""
         if obj.post:
             return format_html('❤️ Post #{} by @{}', obj.post.pk, obj.post.author.handle)
         elif obj.comment:
@@ -42,12 +40,10 @@ class LikeAdmin(admin.ModelAdmin):
     target_type.short_description = 'Liked'
     
     def status(self, obj):
-        """Show like status."""
         return format_html('✓ Active')
     status.short_description = 'Status'
     
     def user_info(self, obj):
-        """Display user info in readonly field."""
         return format_html(
             '<strong>{}</strong><br>@{}<br>Email: {}',
             obj.user.display_name,
@@ -57,7 +53,6 @@ class LikeAdmin(admin.ModelAdmin):
     user_info.short_description = 'User Information'
     
     def target_info(self, obj):
-        """Display target info in readonly field."""
         if obj.post:
             preview = obj.post.content[:100] if obj.post.content else '(no content)'
             if len(obj.post.content) > 100:

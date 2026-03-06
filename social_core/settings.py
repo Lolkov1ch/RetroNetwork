@@ -81,7 +81,6 @@ ROOT_URLCONF = 'social_core.urls'
 
 ASGI_APPLICATION = 'social_core.asgi.application'
 
-# Redis configuration for Channels
 REDIS_URL = (os.environ.get("REDIS_URL") or "").strip().strip('"').strip("'")
 if REDIS_URL:
     CHANNEL_LAYERS = {
@@ -120,7 +119,6 @@ WSGI_APPLICATION = 'social_core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# PostgreSQL configuration
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
@@ -224,11 +222,9 @@ CLOUDINARY_STORAGE = {
     "RESOURCE_TYPE": "auto",
 }
 
-# Default primary key field type
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -248,7 +244,6 @@ REST_FRAMEWORK = {
     }
 }
 
-# CORS Configuration
 CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000'
@@ -256,11 +251,9 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 
 CORS_ALLOW_CREDENTIALS = True
 
-# File Upload Settings
 DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # 25 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # 25 MB
 
-# Security Settings
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
 SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
@@ -274,21 +267,17 @@ SECURE_CONTENT_SECURITY_POLICY = {
     'IMG_SRC': ("'self'", "data:", "https:"),
 }
 
-# Additional security settings for production
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Session and cookie settings
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Prevent clickjacking
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
 
-# Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -339,6 +328,5 @@ LOGGING = {
     },
 }
 
-# Ensure logs directory exists
 LOGS_DIR = BASE_DIR / 'logs'
 LOGS_DIR.mkdir(exist_ok=True)
