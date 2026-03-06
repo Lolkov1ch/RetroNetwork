@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.auth import get_user_model
+import logging
 
 from .storage_paths import user_directory_path
 from .validators import validate_upload_file, get_file_type
@@ -10,6 +11,8 @@ from social_core.storages import (
     ChatVideoCloudinaryStorage,
     RawFileCloudinaryStorage,
 )
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -26,6 +29,7 @@ class Media(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_media')
     file = models.FileField(
         upload_to=user_directory_path,
+        storage=RawFileCloudinaryStorage(),  # Default to raw storage
         validators=[validate_upload_file],
         help_text='Maximum file size depends on file type'
     )
@@ -60,6 +64,7 @@ class Media(models.Model):
             self.file.storage = get_storage_for_type(self.file_type)
             if hasattr(self.file, 'seek'):
                 self.file.seek(0)
+            logger.info(f"Media.save: file_type={self.file_type}, storage={self.file.storage.__class__.__name__}")
         super().save(*args, **kwargs)
 
     def __str__(self):

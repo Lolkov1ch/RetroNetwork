@@ -23,6 +23,8 @@ ALLOWED_MIME_TYPES = {
         'audio/wav',
         'audio/mp4',
         'audio/ogg',
+        'audio/webm',
+        'audio/aac',
     },
     'document': {
         'application/pdf',
@@ -50,6 +52,8 @@ EXTENSION_TO_TYPE = {
     '.wav': 'audio',
     '.m4a': 'audio',
     '.ogg': 'audio',
+    '.webm': 'audio',
+    '.aac': 'audio',
     '.pdf': 'document',
     '.doc': 'document',
     '.docx': 'document',

@@ -31,7 +31,9 @@ def handle_media_upload(request, post):
         or request.FILES.getlist("file")
     )
 
+    logger.info(f"handle_media_upload called with {len(files)} files for post {post.id}")
     if not files:
+        logger.warning("No files found in request.FILES")
         return False
 
     uploaded_any = False
@@ -48,9 +50,15 @@ def handle_media_upload(request, post):
         file_type = _detect_type(f)
 
         try:
+            cleaned_file = form.cleaned_data["file"]
+            # Ensure file pointer is at the beginning
+            if hasattr(cleaned_file, 'seek'):
+                cleaned_file.seek(0)
+            
+            logger.info(f"Creating Media object for file: {cleaned_file.name}, type: {file_type}")
             Media.objects.create(
                 user=request.user,
-                file=form.cleaned_data["file"],
+                file=cleaned_file,
                 file_type=file_type,
                 content_type=post_content_type,
                 object_id=post.id,

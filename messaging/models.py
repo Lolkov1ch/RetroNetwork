@@ -272,12 +272,7 @@ class MessageAttachment(models.Model):
             self.file.field.storage = ImageCloudinaryStorage()
         elif self.attachment_type == 'video':
             self.file.field.storage = ChatVideoCloudinaryStorage()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Attachment ({self.attachment_type}) for message {self.message.id}"
-
-    def save(self, *args, **kwargs):
+        
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
