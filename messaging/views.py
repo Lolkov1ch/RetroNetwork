@@ -86,11 +86,14 @@ class MessengerView(LoginRequiredMixin, TemplateView):
         from .serializers import avatar_data_uri
 
         try:
-            if self.request.user.avatar and self.request.user.avatar.name:
-                avatar_url = self.request.user.avatar.url
+            if self.request.user.avatar:
+                try:
+                    avatar_url = self.request.user.avatar.url
+                except (AttributeError, ValueError, FileNotFoundError):
+                    avatar_url = avatar_data_uri(self.request.user.username, size=80)
             else:
                 avatar_url = avatar_data_uri(self.request.user.username, size=80)
-        except (AttributeError, FileNotFoundError, ValueError):
+        except Exception:
             avatar_url = avatar_data_uri(self.request.user.username, size=80)
 
         context["user_data"] = json.dumps(
