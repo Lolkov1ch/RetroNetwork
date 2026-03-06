@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 
 from .storage_paths import user_directory_path
 from .validators import validate_upload_file, get_file_type
+from social_core.storages import ImageCloudinaryStorage, ChatVideoCloudinaryStorage, RawFileCloudinaryStorage
 
 User = get_user_model()
 
@@ -43,8 +44,16 @@ class Media(models.Model):
     def save(self, *args, **kwargs):
         if self.file:
             self.file_type = get_file_type(self.file.name)
+            # Ensure file pointer is at the beginning
             if hasattr(self.file, 'seek'):
                 self.file.seek(0)
+            # Use appropriate storage based on file type
+            if self.file_type == 'image':
+                self.file.field.storage = ImageCloudinaryStorage()
+            elif self.file_type == 'video':
+                self.file.field.storage = ChatVideoCloudinaryStorage()
+            elif self.file_type in ('audio', 'document'):
+                self.file.field.storage = RawFileCloudinaryStorage()
         super().save(*args, **kwargs)
     
     def __str__(self):

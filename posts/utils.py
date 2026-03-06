@@ -18,7 +18,9 @@ def _detect_type(uploaded_file) -> str:
         return "image"
     if ct.startswith("video/"):
         return "video"
-    return "file"
+    if ct.startswith("audio/"):
+        return "audio"
+    return "document"
 
 
 def handle_media_upload(request, post):
