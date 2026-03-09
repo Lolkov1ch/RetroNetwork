@@ -207,6 +207,36 @@ class ConversationViewSet(viewsets.ModelViewSet):
         serializer = ConversationSerializer(conversation, context={"request": request})
         return Response(serializer.data, status=200)
 
+    @action(detail=False, methods=["post"])
+    def change_status(self, request):
+        """Change the user's status and broadcast it"""
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        new_status = request.data.get("status")
+        if new_status not in ['online', 'dnd', 'inactive', 'offline']:
+            return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.status = new_status
+        request.user.save(update_fields=['status'])
+
+        # Broadcast status change via WebSocket
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "presence",
+                {
+                    "type": "user_status_changed",
+                    "user_id": request.user.id,
+                    "username": request.user.username,
+                    "status": new_status,
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Failed to broadcast status change: {e}")
+
+        return Response({"status": "success", "new_status": new_status}, status=status.HTTP_200_OK)
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
